@@ -6,7 +6,7 @@
 #include "Shader.h"
 #include "Globals.h"
 
-Camera camera{90,(float) WINDOW_WIDTH,(float) WINDOW_HEIGHT,1,100};
+Camera camera{glm::radians(90.f),(float) WINDOW_WIDTH,(float) WINDOW_HEIGHT,1,100};
 double currentTime = 0.0f;
 double deltaTime = 0.0f;
 std::shared_ptr<Screen> screen;
@@ -41,7 +41,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Construct the window
-    window = glfwCreateWindow(800, 600, "OpenGL Template", nullptr, nullptr);
+    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "OpenGL Template", nullptr, nullptr);
     if (!window)
     {
         std::cout << "Failed to create the GLFW window\n";
@@ -60,20 +60,22 @@ int main()
     }
 
     // Handle view port dimensions
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height)
     {
         glViewport(0, 0, width, height);
+        WINDOW_WIDTH = width;
+        WINDOW_HEIGHT = height;
+        camera.aspectRatio = (float) width / (float) height;
     });
 
     // setting the cursor position callback
     glfwSetCursorPosCallback(window, [](GLFWwindow* w, double xpos, double ypos) {
         static_cast<Camera*>(glfwGetWindowUserPointer(w))->mouseCallback(w, xpos, ypos);
-        std::cout << camera.position.x + camera.position.y + camera.position.z << std::endl;
-        std::cout << camera.center.x + camera.center.y + camera.center.z << std::endl;
     });
 
-    // modifying variables before runtime
+    ShaderProgram::allEnableVariableNotBoundMessage(false);
+    // modifying variables before runtimes
     start();
 
     // This is the render loop

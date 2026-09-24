@@ -76,6 +76,12 @@ public:
     }
     bool enableSendNotBoundVariableMessage = true;
 
+    static inline bool allEnableSendNotBoundVariableMessage = true;
+
+    static void allEnableVariableNotBoundMessage(bool b) {
+        allEnableSendNotBoundVariableMessage = b;
+    }
+
     void enableVariableNotBoundMessage(bool b) {
         enableSendNotBoundVariableMessage = b;
     }
@@ -99,7 +105,7 @@ private:
     // Fonction interne pour récupérer la location et vérifier
     GLint getLocationChecked(const std::string &name) const {
         GLint loc = glGetUniformLocation(_id, name.c_str());
-        if (loc == -1 && enableSendNotBoundVariableMessage) {
+        if (loc == -1 && enableSendNotBoundVariableMessage && allEnableSendNotBoundVariableMessage) {
             std::cout << "Uniform '" << name << "' introuvable !" << std::endl;
         }
         return loc;

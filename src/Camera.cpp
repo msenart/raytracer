@@ -1,10 +1,10 @@
 #include "Camera.h"
 
-Camera::Camera(float fov_v, float window_width, float window_height, float near_v, float far_v) : fov(fov_v), aspectRatio(window_height/window_width),nearPlane(near_v),farPlane(far_v){
+#include "Shader.h"
+
+Camera::Camera(float fov_v, float window_width, float window_height, float near_v, float far_v) : fov(fov_v), aspectRatio(window_width/window_height),nearPlane(near_v),farPlane(far_v){
 lastX = 0; lastY = 0;justAfterQuittingUI = true;
 }
-
-glm::mat4 Camera::model() const { return glm::translate(glm::mat4(1.0f), position);}
 
 glm::mat4 Camera::view() const { return glm::lookAt(position, center, up); }
 
@@ -64,4 +64,16 @@ void Camera::processKeyboard(GLFWwindow* window, float deltaTime) {
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         {position += glm::normalize(glm::cross(direction, up)) * velocity; ismoving = true;}
     center = position + direction;
+}
+
+void Camera::setShaderValues(const std::shared_ptr<ShaderProgram> &sp) const {
+    sp->use();
+    sp->set("camera.position", position);
+    sp->set("camera.up", up);
+    sp->set("camera.aspectRatio", aspectRatio);
+    sp->set("camera.fov",fov);
+    sp->set("camera.nearPlane", nearPlane);
+    sp->set("camera.farPlane", farPlane);
+    sp->set("camera.view", view());
+    sp->set("camera.projection", projection());
 }

@@ -1,10 +1,10 @@
-#version 330 core
+#version 450 core
 
 layout(location = 0) in vec2 pos;
 
-out vec4 fragPos;
+out vec2 uvScreen;
 
 void main() {
-    fragPos = vec4(pos, 0, 1);
+    uvScreen = pos;
     gl_Position = vec4(pos,0.0, 1.0);
 }

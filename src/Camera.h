@@ -2,19 +2,21 @@
 
 #include "OpenGLIncludes.h"
 
+class ShaderProgram;
+
 class Camera {
 public:
     Camera(float fov_v, float window_width, float window_height, float near_v, float far_v);
 
-    [[nodiscard]] glm::mat4 model() const;
     [[nodiscard]] glm::mat4 view() const;
     [[nodiscard]] glm::mat4 projection() const;
 
     void mouseCallback(GLFWwindow* window, double xpos, double ypos);
     void processKeyboard(GLFWwindow* window, float deltaTime);
+    void setShaderValues(const std::shared_ptr<ShaderProgram>& sp) const;
 
-    glm::vec3 position{0.0f, 0.0f, 5.0f};
-    glm::vec3 center{0.0f, 0.0f, 0.0f};
+    glm::vec3 position{0.0f, 0.0f, 0.0f};
+    glm::vec3 center{0.0f, 0.0f, 1.0f};
     glm::vec3 up{0.0f, 1.0f, 0.0f};
 
     float fov;
