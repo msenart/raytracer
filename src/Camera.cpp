@@ -1,0 +1,67 @@
+#include "Camera.h"
+
+Camera::Camera(float fov_v, float window_width, float window_height, float near_v, float far_v) : fov(fov_v), aspectRatio(window_height/window_width),nearPlane(near_v),farPlane(far_v){
+lastX = 0; lastY = 0;justAfterQuittingUI = true;
+}
+
+glm::mat4 Camera::model() const { return glm::translate(glm::mat4(1.0f), position);}
+
+glm::mat4 Camera::view() const { return glm::lookAt(position, center, up); }
+
+glm::mat4 Camera::projection() const { return glm::perspective(fov, aspectRatio, nearPlane, farPlane); }
+
+void Camera::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
+    if (justAfterQuittingUI) {
+        lastX = xpos;
+        lastY = ypos;
+        justAfterQuittingUI = false;
+    }
+
+    if (!can_move) {
+        return;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    if (glm::abs(xoffset) > 0 && glm::abs(yoffset) > 0) {
+        ismoving = true;
+    }
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw   += xoffset;
+    pitch += yoffset;
+
+    // Clamp pitch
+    if (pitch > 89.0f) pitch = 89.0f;
+    if (pitch < -89.0f) pitch = -89.0f;
+
+    // Compute forward vector
+    glm::vec3 dir;
+    dir.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    dir.y = sin(glm::radians(pitch));
+    dir.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+
+    center = position + glm::normalize(dir);
+}
+
+void Camera::processKeyboard(GLFWwindow* window, float deltaTime) {
+    if (!can_move) {
+        return;
+    }
+    float velocity = speed * deltaTime;
+    glm::vec3 direction = normalize((center-position));
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        {position += direction * velocity; ismoving = true;}
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        {position -= direction * velocity; ismoving = true;}
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        {position -= glm::normalize(glm::cross(direction, up)) * velocity; ismoving = true;}
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        {position += glm::normalize(glm::cross(direction, up)) * velocity; ismoving = true;}
+    center = position + direction;
+}
