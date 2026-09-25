@@ -1,36 +1,40 @@
-#include "Camera.h"
 #include "OpenGLIncludes.h"
 #include "Parameters.h"
-#include "Bufwrap.h"
-#include "Screen.h"
-#include "Shader.h"
 #include "Globals.h"
+#include "Context.h"
 
-Camera camera{glm::radians(90.f),(float) WINDOW_WIDTH,(float) WINDOW_HEIGHT,1,100};
+std::shared_ptr<Context> context;
+
 double currentTime = 0.0f;
 double deltaTime = 0.0f;
-std::shared_ptr<Screen> screen;
 void ProcessInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    camera.processKeyboard(window,deltaTime);
+    context->camera.processKeyboard(window,deltaTime);
 }
 
 void start() {
-    camera.can_move = true;
-
     // make the cursor disappear on focusing the window
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    screen = std::make_shared<Screen>();
+    Context ctx = {
+        .camera = {glm::radians(90.f),(float) WINDOW_WIDTH,(float) WINDOW_HEIGHT,1,100},
+        .screen = {}
+    };
+
+    context = std::make_shared<Context>(ctx);
+    context->camera.can_move = true;
+
+    // setting the window user pointer
+    glfwSetWindowUserPointer(window, context.get());
 }
 
 void update(){
     deltaTime = glfwGetTime() - currentTime;
     currentTime = glfwGetTime();
 
-    screen->draw();
+    context->screen.draw();
 }
 
 int main()
@@ -51,9 +55,6 @@ int main()
 
         glfwMakeContextCurrent(window);
 
-        // setting the window user pointer
-        glfwSetWindowUserPointer(window, &camera);
-
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
         {
             std::cout << "Failed to initialize GLAD\n";
@@ -64,15 +65,18 @@ int main()
         glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
         glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height)
         {
+            const auto context = static_cast<Context*>(glfwGetWindowUserPointer(window));
             glViewport(0, 0, width, height);
             WINDOW_WIDTH = width;
             WINDOW_HEIGHT = height;
-            camera.aspectRatio = (float) width / (float) height;
+            context->camera.aspectRatio = (float) width / (float) height;
+            context->screen.windowResizeCallback(window, width, height);
         });
 
         // setting the cursor position callback
-        glfwSetCursorPosCallback(window, [](GLFWwindow* w, double xpos, double ypos) {
-            static_cast<Camera*>(glfwGetWindowUserPointer(w))->mouseCallback(w, xpos, ypos);
+        glfwSetCursorPosCallback(window, [](GLFWwindow* window, double xpos, double ypos) {
+            const auto context = static_cast<Context*>(glfwGetWindowUserPointer(window));
+            context->camera.mouseCallback(window, xpos, ypos);
         });
 
         // modifying variables before runtimes
@@ -92,6 +96,7 @@ int main()
             glfwPollEvents();
         }
 
+        context.reset();
         glfwTerminate();
         return 0;
     }

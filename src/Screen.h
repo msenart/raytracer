@@ -6,9 +6,21 @@ struct Screen {
     VBO* vbo;
     IBO* ibo;
     std::shared_ptr<Shader> sp;
-    unsigned int frame = 0;
+    std::shared_ptr<Shader> sp2;
+    unsigned int frame = 1;
+
+    FBO* fbo1;
+    FBO* fbo2;
+    unsigned int fbo1_tex = 0;
+    unsigned int fbo2_tex = 0;
+    bool isFbo1 = true;
 
     Screen();
 
     void draw();
+
+    /// @brief resets both textures values to the background values.
+    void resetTextures();
+
+    void windowResizeCallback(GLFWwindow* window, int width, int height) const;
 };

@@ -1,5 +1,4 @@
-#ifndef GRAPHICSPROJECT_BUFWRAP_H
-#define GRAPHICSPROJECT_BUFWRAP_H
+#pragma once
 
 #include <vector>
 #include "OpenGLIncludes.h"
@@ -217,5 +216,3 @@ void UBO<T>::bind() const {
 
 template<typename T>
 GLuint UBO<T>::id() const { return m_ubo; }
-
-#endif //GRAPHICSPROJECT_BUFWRAP_H

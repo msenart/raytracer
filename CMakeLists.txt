@@ -48,7 +48,8 @@ file(GLOB_RECURSE sources CONFIGURE_DEPENDS
 add_executable(raytracer ${sources}
         src/Screen.cpp
         src/Screen.h
-        src/Globals.h)
+        src/Globals.h
+        src/Context.h)
 
 target_precompile_headers(raytracer PRIVATE src/OpenGLIncludes.h)
 
@@ -90,10 +91,10 @@ LinkSTB(raytracer PRIVATE)
 include(${CMAKE_DIR}/LinkCXXOPTS.cmake)
 LinkCXXOPTS(raytracer PRIVATE)
 
-#copy target to root
-add_custom_command(TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_CURRENT_SOURCE_DIR})
+##copy target to root
+#add_custom_command(TARGET ${PROJECT_NAME}
+#        POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Enable C++17
 set_target_properties(raytracer PROPERTIES

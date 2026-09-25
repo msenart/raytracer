@@ -6,6 +6,8 @@
 #include "ray.glsl"
 #include "reflections.glsl"
 
+uniform sampler2D readTex;
+
 out vec4 fragColor;
 in vec2 uvScreen;
 
@@ -75,7 +77,16 @@ void main() {
     spheres[1] = s1;
     spheres_size++;
 
-    vec2 uv = uvScreen;
+    Sphere s2 = Sphere(
+            vec3(0.f,-101.f,0.f),
+            100.f,
+            vec4(1.f, 1.f, 1.f, 1.f),
+            false
+    );
+    spheres[2] = s2;
+    spheres_size++;
+
+    vec2 uv = (uvScreen-0.5)*2;
     uv.x *= camera.aspectRatio;
     float z = 1.0 / tan(camera.fov * 0.5);
     vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
@@ -84,7 +95,10 @@ void main() {
 
     vec4 color = Trace(r);
 
-    fragColor = color;
+
+    float lambda = 1.0/frame;
+    vec4 bufferColor = vec4(texture(readTex,uvScreen).rgb,1);
+    fragColor = lambda*color + bufferColor*(1-lambda);
 
     // shader testing...
 //    vec4 screenPos = camera.projection * camera.view *vec4(uvScreen,0.0,1.0);

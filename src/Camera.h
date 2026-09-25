@@ -29,7 +29,7 @@ public:
     float pitch = 0.0f;
 
     bool can_move = false;
-    bool ismoving = false;
+    bool is_moving = false;
     float lastX;
     float lastY;
     bool justAfterQuittingUI;

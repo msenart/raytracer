@@ -1,6 +1,7 @@
 #include "Camera.h"
-
 #include "Shader.h"
+#include "Context.h"
+#include "Screen.h"
 
 Camera::Camera(float fov_v, float window_width, float window_height, float near_v, float far_v) : fov(fov_v), aspectRatio(window_width/window_height),nearPlane(near_v),farPlane(far_v){
 lastX = 0; lastY = 0;justAfterQuittingUI = true;
@@ -24,7 +25,7 @@ void Camera::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
     float xoffset = xpos - lastX;
     float yoffset = lastY - ypos;
     if (glm::abs(xoffset) > 0 && glm::abs(yoffset) > 0) {
-        ismoving = true;
+        is_moving = true;
     }
     lastX = xpos;
     lastY = ypos;
@@ -47,6 +48,12 @@ void Camera::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
     dir.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 
     center = position + glm::normalize(dir);
+
+    if (is_moving) {
+        auto context = static_cast<Context*>(glfwGetWindowUserPointer(window));
+        context->screen.resetTextures();
+    }
+    is_moving = false;
 }
 
 void Camera::processKeyboard(GLFWwindow* window, float deltaTime) {
@@ -56,14 +63,20 @@ void Camera::processKeyboard(GLFWwindow* window, float deltaTime) {
     float velocity = speed * deltaTime;
     glm::vec3 direction = normalize((center-position));
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        {position += direction * velocity; ismoving = true;}
+        {position += direction * velocity; is_moving = true;}
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        {position -= direction * velocity; ismoving = true;}
+        {position -= direction * velocity; is_moving = true;}
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        {position -= glm::normalize(glm::cross(direction, up)) * velocity; ismoving = true;}
+        {position -= glm::normalize(glm::cross(direction, up)) * velocity; is_moving = true;}
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        {position += glm::normalize(glm::cross(direction, up)) * velocity; ismoving = true;}
+        {position += glm::normalize(glm::cross(direction, up)) * velocity; is_moving = true;}
     center = position + direction;
+
+    if (is_moving) {
+        auto context = static_cast<Context*>(glfwGetWindowUserPointer(window));
+        context->screen.resetTextures();
+    }
+    is_moving = false;
 }
 
 void Camera::setShaderValues(const std::shared_ptr<Shader> &sp) const {
