@@ -1,6 +1,8 @@
 #ifndef RANDOM_GLSL
 #define RANDOM_GLSL
 
+#include "params.glsl"
+
 uint seed;
 
 uint hash(uint seed) {
@@ -14,12 +16,23 @@ float rand() {
     return float(seed) / float(0xffffffffu);
 }
 
+float rand(float a, float b){
+    return a + (b-a)*rand();
+}
+
 int randint(int min, int max){
     return int(floor(min + rand()*(max - min)));
 }
 
+vec3 shitRandomUnitVector(){
+    return normalize(vec3(rand(-1,1),rand(-1,1),rand(-1,1)));
+}
+
 vec3 randomUnitVector(){
-    return normalize(vec3((rand()-0.5)*2,(rand()-0.5)*2,(rand()-0.5)*2));
+    float z = rand(-1,1);
+    float theta = rand(0,2*PI);
+    float r = sqrt(1-z*z);
+    return normalize(vec3(r*cos(theta), r*sin(theta), z));
 }
 
 #endif

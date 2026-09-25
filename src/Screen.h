@@ -6,37 +6,9 @@ struct Screen {
     VBO* vbo;
     IBO* ibo;
     std::shared_ptr<Shader> sp;
+    unsigned int frame = 0;
 
-    Screen() {
-        vao = new VAO();
-        vao->bind();
-        vbo = new VBO();
-        ibo = new IBO();
-        vao->bind();
+    Screen();
 
-        std::vector<float> screen = {
-            -1.0f, -1.0f,
-            -1.0f, 1.0f,
-            1.0f, 1.0f,
-            1.0f, -1.0f,
-        };
-        vbo->setData(screen.size()*sizeof(float),screen.data(),GL_STATIC_DRAW);
-        VertexAttribute va = {
-            0,
-            2,
-            GL_FLOAT,
-            GL_FALSE,
-            2*sizeof(float),
-            nullptr,
-        };
-        std::vector<unsigned int> indices = {
-            2,1,0,3,2,0
-        };
-        ibo->setData(indices.size()*sizeof(unsigned int),indices.data(), GL_STATIC_DRAW);
-        vao->addVBO(*vbo,{va});
-        vao->unbind();
-        sp = std::make_shared<Shader>(Shader::fromFiles("test.vert","test.frag"));
-    }
-
-    void draw() const;
+    void draw();
 };
