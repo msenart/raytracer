@@ -20,3 +20,9 @@
 #include <sstream>
 #include <ios>
 #include <unordered_set>
+
+#include <glm/gtc/type_ptr.hpp>
+#include <stdexcept>
+#include <utility>
+#include <regex>
+#include <set>

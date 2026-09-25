@@ -66,8 +66,8 @@ void Camera::processKeyboard(GLFWwindow* window, float deltaTime) {
     center = position + direction;
 }
 
-void Camera::setShaderValues(const std::shared_ptr<ShaderProgram> &sp) const {
-    sp->use();
+void Camera::setShaderValues(const std::shared_ptr<Shader> &sp) const {
+    sp->bind();
     sp->set("camera.position", position);
     sp->set("camera.up", up);
     sp->set("camera.aspectRatio", aspectRatio);

@@ -1,21 +1,13 @@
 #version 450 core
 
 #include "camera.glsl"
+#include "sphereSDF.glsl"
+#include "params.glsl"
 
-const uint MAX_ITER = 200;
-const float MAX_DISTANCE = 200.f;
-const uint MAX_MESH = 16;
-const vec4 BACKGROUND_COLOR = vec4(.1f,.1f,.1f,1.f);
-const float eps = 10E-3;
 out vec4 fragColor;
 in vec2 uvScreen;
 
 uniform Camera camera;
-
-struct Sphere{
-    vec3 pos;
-    float radius;
-};
 
 Sphere[MAX_MESH] spheres;
 uint spheres_size = 0;
@@ -26,34 +18,35 @@ struct Ray {
     vec4 throughput;
 };
 
-float distanceToSphere(vec3 x, Sphere s){
-    return length(x-s.pos) - s.radius;
-}
 
 vec4 Trace(Ray r){
     float t = 0;
     float min_distance = 10000.f;
     for (uint iter = 0;iter<MAX_ITER;iter++){
         for (uint s_id = 0; s_id < spheres_size; s_id++){ // sweep all meshes and find the closest distance
-            float cur_distance = distanceToSphere(r.o + r.d*t, spheres[s_id]);
+            vec3 x = r.o + r.d*t;
+            float cur_distance = distanceToSphere(x,spheres[s_id]);
             min_distance = min(min_distance,cur_distance);
+            if (min_distance <= eps){ // if the ray has hit a mesh
+                return vec4(normalToSphere(x,spheres[s_id]),1.0);
+            }
+            else if (t > MAX_DISTANCE){ // if the ray "has fled away", return background color
+                return BACKGROUND_COLOR;
+            }
         }
-        if (min_distance <= eps){ // if the ray has hit a mesh
-            return vec4(0,0,1,1);
-        }
-        else if (t > MAX_DISTANCE){ // if the ray "has fled away", return background color
-            return BACKGROUND_COLOR;
-        }
-        t+=min_distance;
+        t+=abs(min_distance);
     }
 
     // if the algorithm hasn't converged, return the background color
     return BACKGROUND_COLOR;
 }
 
-
 void main() {
-    Sphere s = {vec3(0.f,0.f,5.f),0.5f};
+    Sphere s = {
+    vec3(0.f,0.f,5.f),
+    0.5f,
+    vec4(1.f, 1.f, 1.f, 1.f)
+    };
     spheres[0] = s;
     spheres_size++;
 

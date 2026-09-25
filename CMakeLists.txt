@@ -46,8 +46,6 @@ file(GLOB_RECURSE sources CONFIGURE_DEPENDS
 )
 
 add_executable(raytracer ${sources}
-        src/Shader.cpp
-        src/Shader.h
         src/Screen.cpp
         src/Screen.h
         src/Globals.h)

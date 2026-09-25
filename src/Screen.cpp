@@ -3,7 +3,7 @@
 #include "Globals.h"
 
 void Screen::draw() const {
-    sp->use();
+    sp->bind();
     vao->bind();
 
     // bind camera variables to the shader

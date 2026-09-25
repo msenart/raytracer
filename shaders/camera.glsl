@@ -1,3 +1,6 @@
+#ifndef CAMERA_GLSL
+#define CAMERA_GLSL
+
 struct Camera {
     vec3 position;
     mat4 view;
@@ -8,3 +11,5 @@ struct Camera {
     float nearPlane;
     float farPlane;
 };
+
+#endif

@@ -1,145 +1,102 @@
+/**
+ * @file Shader.h
+ * @brief GLSL shader program wrapper with uniform upload helpers.
+ */
 #pragma once
 
 #include "OpenGLIncludes.h"
 
-class ShaderProgram {
+
+/**
+ * @brief Compiles and links a GLSL shader program.
+ *
+ * Supports the full rasterization pipeline (vertex, fragment, geometry,
+ * tessellation control/evaluation) and the compute pipeline.
+ * Compilation errors throw std::runtime_error with the GLSL error log.
+ * Non-copyable, movable; the underlying program is deleted in the destructor.
+ */
+class Shader {
 public:
-    /// @brief Main function of the class. Generates a shader program using paths to written shaders. Takes care of includes.
-    /// If the compute shader path is not empty, the program will be a compute shader. Else, it is a normal rasterization shader.
-    /// @param vertexShader         vertex shader path from the executable.
-    /// @param fragmentShader       fragment shader path from the executable.
-    /// @param geometryShader       geometry shader path from the executable.
-    /// @param tessControlShader    tesselation control shader path from the executable.
-    /// @param tessEvalShader       tesselation evaluation shader path from the executable.
-    /// @param computeShader        compute shader path from the executable.
-    /// @return
-    static std::shared_ptr<ShaderProgram> genShaderProgram(
-    const std::string& vertexShader,
-    const std::string& fragmentShader,
-    const std::string& geometryShader   = "",
-    const std::string& tessControlShader = "",
-    const std::string& tessEvalShader    = "",
-    const std::string& computeShader     = ""
-);
+    /**
+     * @brief Compiles and links a rasterization shader program.
+     * @param vertSrc  GLSL source for the vertex stage (required).
+     * @param fragSrc  GLSL source for the fragment stage (required).
+     * @param geomSrc  GLSL source for the geometry stage (optional, nullptr = skip).
+     * @param tescSrc  GLSL source for the tessellation control stage (optional).
+     * @param teseSrc  GLSL source for the tessellation evaluation stage (optional).
+     * @throws std::runtime_error on compile or link failure.
+     */
+    Shader(const char* vertSrc, const char* fragSrc,
+           const char* geomSrc = nullptr,
+           const char* tescSrc = nullptr,
+           const char* teseSrc = nullptr);
 
-    GLuint id() const { return _id; }
+    /**
+     * @brief Compiles and links a compute shader program.
+     * @param compSrc  GLSL source for the compute stage.
+     * @throws std::runtime_error on compile or link failure.
+     */
+    static Shader compute(const char* compSrc);
 
-    /// @brief locks the shader program for variable bindings.
-    void use() const { glUseProgram(_id); }
+    /**
+     * @brief Loads a rasterization shader program from .glsl files on disk.
+     * @param vertPath Path to the vertex shader file (required).
+     * @param fragPath Path to the fragment shader file (required).
+     * @param geomPath Path to the geometry shader file (empty string = skip).
+     * @param tescPath Path to the tessellation control shader file (empty = skip).
+     * @param tesePath Path to the tessellation evaluation shader file (empty = skip).
+     * @param defines All defines macros needed to compile the shader the right way
+     * @throws std::runtime_error if a file cannot be opened or compilation fails.
+     */
+    static Shader fromFiles(const std::string &vertPath,
+                            const std::string &fragPath,
+                            const std::string &geomPath = {},
+                            const std::string &tescPath = {},
+                            const std::string &tesePath = {});
 
-    /// @brief unlocks the shader program for variable bindings.
-    static void stop() { glUseProgram(0); }
+    /**
+     * @brief Loads a compute shader program from a .glsl file on disk.
+     * @param compPath  Path to the compute shader file.
+     * @param defines All defines macros needed to compile the shader the right way
+     * @throws std::runtime_error if the file cannot be opened or compilation fails.
+     */
+    static Shader computeFile(const std::string &compPath);
 
-    /// @brief recompiles the shader program following its paths.
-    void reload();
+    ~Shader();
+    Shader(Shader&& other) noexcept;
+    Shader& operator=(Shader&& other) noexcept;
+    Shader(const Shader&)            = delete;
+    Shader& operator=(const Shader&) = delete;
 
-    // All the setters for variable binding.
+    /// Binds this program for subsequent draw calls.
+    void bind()   const;
+    /// Unbinds any active shader program.
+    void unbind() const;
 
-    void set(const std::string &name, int value) const {
-        GLint loc = getLocationChecked(name);
-        if (loc != -1) glUniform1i(loc, value);
-    }
-
-    void set(const std::string &name, float value) const {
-        GLint loc = getLocationChecked(name);
-        if (loc != -1) glUniform1f(loc, value);
-    }
-
-    void set(const std::string &name, GLuint value) const {
-        GLint loc = getLocationChecked(name);
-        if (loc != -1) glUniform1i(loc, static_cast<GLint>(value));
-    }
-
-    void set(const std::string &name, const glm::vec2 &value) const {
-        GLint loc = getLocationChecked(name);
-        if (loc != -1) glUniform2fv(loc, 1, glm::value_ptr(value));
-    }
-
-    void set(const std::string &name, const glm::vec3 &value) const {
-        GLint loc = getLocationChecked(name);
-        if (loc != -1) glUniform3fv(loc, 1, glm::value_ptr(value));
-    }
-
-    void set(const std::string &name, const glm::vec4 &value) const {
-        GLint loc = getLocationChecked(name);
-        if (loc != -1) glUniform4fv(loc, 1, glm::value_ptr(value));
-    }
-
-    void set(const std::string &name, const glm::mat3 &value) const {
-        GLint loc = getLocationChecked(name);
-        if (loc != -1) glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(value));
-    }
-
-    void set(const std::string &name, const glm::mat4 &value) const {
-        GLint loc = getLocationChecked(name);
-        if (loc != -1) glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(value));
-    }
-    bool enableSendNotBoundVariableMessage = true;
-
-    static inline bool allEnableSendNotBoundVariableMessage = true;
-
-    static void allEnableVariableNotBoundMessage(bool b) {
-        allEnableSendNotBoundVariableMessage = b;
-    }
-
-    void enableVariableNotBoundMessage(bool b) {
-        enableSendNotBoundVariableMessage = b;
-    }
-    virtual ~ShaderProgram();
-    ShaderProgram& operator=(ShaderProgram&& other) noexcept {
-        if (this != &other) {
-            glDeleteProgram(_id);
-            _id = other._id;
-        }
-        return *this;
-    }
-
-    ShaderProgram();
-
-    ShaderProgram(ShaderProgram&& other) noexcept {
-        _id = other._id;
-    }
-
+    // Uniform setters - the correct GL call is selected automatically by type.
+    void set(const char* name, const glm::mat4& v) const;
+    void set(const char* name, const glm::mat3& v) const;
+    void set(const char* name, const glm::vec4& v) const;
+    void set(const char* name, const glm::vec3& v) const;
+    void set(const char* name, const glm::vec2& v) const;
+    void set(const char* name, float v) const;
+    void set(const char* name, int v) const;
+    void set(const char* name, bool v) const;
+    void set(const char* name, unsigned int v) const;
 private:
+    // m_id is the value return by buildRasterProgram which is called by the constructor
+    GLuint m_id = 0;
 
-    // Fonction interne pour récupérer la location et vérifier
-    GLint getLocationChecked(const std::string &name) const {
-        GLint loc = glGetUniformLocation(_id, name.c_str());
-        if (loc == -1 && enableSendNotBoundVariableMessage && allEnableSendNotBoundVariableMessage) {
-            std::cout << "Uniform '" << name << "' introuvable !" << std::endl;
-        }
-        return loc;
-    }
+    explicit Shader(GLuint id) : m_id(id) {}
 
-    void loadShader(GLenum type, const std::string &shaderFilename);
-    void link() const {
-        glLinkProgram(_id);
+    GLint  loc(const char* name) const;
 
-        GLint success;
-        glGetProgramiv(_id, GL_LINK_STATUS, &success);
+    static std::string readFile(const std::string &path);
 
-        if (!success) {
-            GLint len;
-            glGetProgramiv(_id, GL_INFO_LOG_LENGTH, &len);
-            if (len > 0) {
-                std::vector<GLchar> log(len);
-                glGetProgramInfoLog(_id, len, nullptr, log.data());
-                std::cerr << "--- PROGRAM LINK ERROR ---" << std::endl;
-                std::cerr << log.data() << std::endl;
-                std::cerr << "--------------------------" << std::endl;
-            }
-        }
-    }
-
-    std::string file2String(const std::string &filename);
-
-    std::string loadShaderWithIncludes(const std::string &filename, std::unordered_set<std::string> &alreadyIncluded);
-
-    GLuint _id = 0;
-    std::string vertexShaderPath;
-    std::string fragmentShaderPath;
-    std::string geometryShaderPath;
-    std::string tessControlShaderPath;
-    std::string tessEvalShaderPath;
-    std::string computeShaderPath;
+    static GLuint compile(GLenum type, const char* src);
+    static GLuint buildRasterProgram(const char* vertSrc, const char* fragSrc,
+                                     const char* geomSrc, const char* tescSrc,
+                                     const char* teseSrc);
+    static GLuint buildComputeProgram(const char* compSrc);
+    static std::string readRecursive(const std::string& path, std::set<std::string>& visited, int& counter);
 };

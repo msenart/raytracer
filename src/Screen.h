@@ -5,7 +5,7 @@ struct Screen {
     VAO* vao;
     VBO* vbo;
     IBO* ibo;
-    std::shared_ptr<ShaderProgram> sp;
+    std::shared_ptr<Shader> sp;
 
     Screen() {
         vao = new VAO();
@@ -35,7 +35,7 @@ struct Screen {
         ibo->setData(indices.size()*sizeof(unsigned int),indices.data(), GL_STATIC_DRAW);
         vao->addVBO(*vbo,{va});
         vao->unbind();
-        sp = ShaderProgram::genShaderProgram("../shaders/test.vert", "../shaders/test.frag");
+        sp = std::make_shared<Shader>(Shader::fromFiles("test.vert","test.frag"));
     }
 
     void draw() const;

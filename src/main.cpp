@@ -35,63 +35,68 @@ void update(){
 
 int main()
 {
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    try {
+        glfwInit();
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    // Construct the window
-    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "OpenGL Template", nullptr, nullptr);
-    if (!window)
-    {
-        std::cout << "Failed to create the GLFW window\n";
+        // Construct the window
+        window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "OpenGL Template", nullptr, nullptr);
+        if (!window)
+        {
+            std::cout << "Failed to create the GLFW window\n";
+            glfwTerminate();
+        }
+
+        glfwMakeContextCurrent(window);
+
+        // setting the window user pointer
+        glfwSetWindowUserPointer(window, &camera);
+
+        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+        {
+            std::cout << "Failed to initialize GLAD\n";
+            return -1;
+        }
+
+        // Handle view port dimensions
+        glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+        glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height)
+        {
+            glViewport(0, 0, width, height);
+            WINDOW_WIDTH = width;
+            WINDOW_HEIGHT = height;
+            camera.aspectRatio = (float) width / (float) height;
+        });
+
+        // setting the cursor position callback
+        glfwSetCursorPosCallback(window, [](GLFWwindow* w, double xpos, double ypos) {
+            static_cast<Camera*>(glfwGetWindowUserPointer(w))->mouseCallback(w, xpos, ypos);
+        });
+
+        // modifying variables before runtimes
+        start();
+
+        // This is the render loop
+        while (!glfwWindowShouldClose(window))
+        {
+            ProcessInput(window);
+            // Druids are the best
+            glClearColor(1.00f, 0.49f, 0.04f, 1.00f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            update();
+
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+        }
+
         glfwTerminate();
+        return 0;
     }
-
-    glfwMakeContextCurrent(window);
-
-    // setting the window user pointer
-    glfwSetWindowUserPointer(window, &camera);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        std::cout << "Failed to initialize GLAD\n";
-        return -1;
+    catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return 1;
     }
-
-    // Handle view port dimensions
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-    glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height)
-    {
-        glViewport(0, 0, width, height);
-        WINDOW_WIDTH = width;
-        WINDOW_HEIGHT = height;
-        camera.aspectRatio = (float) width / (float) height;
-    });
-
-    // setting the cursor position callback
-    glfwSetCursorPosCallback(window, [](GLFWwindow* w, double xpos, double ypos) {
-        static_cast<Camera*>(glfwGetWindowUserPointer(w))->mouseCallback(w, xpos, ypos);
-    });
-
-    ShaderProgram::allEnableVariableNotBoundMessage(false);
-    // modifying variables before runtimes
-    start();
-
-    // This is the render loop
-    while (!glfwWindowShouldClose(window))
-    {
-        ProcessInput(window);
-        // Druids are the best
-        glClearColor(1.00f, 0.49f, 0.04f, 1.00f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        update();
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-
-    glfwTerminate();
-    return 0;
 }

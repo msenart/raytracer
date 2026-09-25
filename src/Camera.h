@@ -2,7 +2,7 @@
 
 #include "OpenGLIncludes.h"
 
-class ShaderProgram;
+class Shader;
 
 class Camera {
 public:
@@ -13,7 +13,7 @@ public:
 
     void mouseCallback(GLFWwindow* window, double xpos, double ypos);
     void processKeyboard(GLFWwindow* window, float deltaTime);
-    void setShaderValues(const std::shared_ptr<ShaderProgram>& sp) const;
+    void setShaderValues(const std::shared_ptr<Shader>& sp) const;
 
     glm::vec3 position{0.0f, 0.0f, 0.0f};
     glm::vec3 center{0.0f, 0.0f, 1.0f};
