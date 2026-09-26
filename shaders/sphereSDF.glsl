@@ -2,12 +2,12 @@
 #define SPHERESDF_GLSL
 
 #include "params.glsl"
+#include "reflections.glsl"
 
 struct Sphere{
     vec3 pos;
     float radius;
-    vec4 color;
-    bool emissive;
+    Material material;
 };
 
 float distanceToSphere(vec3 x, Sphere s){

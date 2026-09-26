@@ -32,12 +32,12 @@ vec4 Trace(Ray r){
             argmin_distance = min_distance == cur_distance ? s_id : argmin_distance;
             if (min_distance <= eps){ // if the ray has hit a mesh
 
-                if (spheres[s_id].emissive){ // if the mesh was emissive
-                    return cur_r.throughput*spheres[s_id].color;
+                if (spheres[s_id].material.emissive){ // if the mesh was emissive
+                    return cur_r.throughput*spheres[s_id].material.color;
                 }
                 else { // if the mesh is not emissive
                     vec3 N = normalToSphere(x,cur_r.d,spheres[s_id]);
-                    cur_r = Ray(x + 2*eps*N ,sampleLambertReflection(cur_r.d, N) ,cur_r.throughput*spheres[s_id].color);
+                    cur_r = Ray(x + 2*eps*N ,sampleReflection(cur_r.d, N,spheres[s_id].material) ,cur_r.throughput*spheres[s_id].material.color);
                     t = 0;
                     argmin_distance = MAX_MESH;
                     break;
@@ -58,31 +58,24 @@ vec4 Trace(Ray r){
 void main() {
     seed = uint(gl_FragCoord.x*100000) * 1973u + uint(gl_FragCoord.y*100000) * 9277u + uint(frame) * 26699u;
 
-
     Sphere s0 = Sphere(
-    vec3(0.f,0.f,5.f),
-    0.5f,
-    vec4(1.f, 1.f, 1.f, 1.f),
-    false
-    );
+            vec3(0.f,0.f,5.f),
+            0.5f,
+            Material(0,vec4(1,1,1,1),true));
     spheres[0] = s0;
     spheres_size++;
 
     Sphere s1 = Sphere(
-    vec3(1.f,0.f,5.f),
-    0.5f,
-    vec4(1.f, 1.f, 1.f, 1.f),
-    true
-    );
+            vec3(1.f,0.f,5.f),
+            0.5f,
+            Material(1,vec4(0.9,0.9,0.9,1),false));
     spheres[1] = s1;
     spheres_size++;
 
     Sphere s2 = Sphere(
             vec3(0.f,-101.f,0.f),
             100.f,
-            vec4(1.f, 1.f, 1.f, 1.f),
-            false
-    );
+            Material(0,vec4(1,1,1,1),false));
     spheres[2] = s2;
     spheres_size++;
 
