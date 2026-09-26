@@ -12,12 +12,13 @@ out vec4 fragColor;
 in vec2 uvScreen;
 
 uniform Camera camera;
+uniform vec2 windowSize;
 uniform uint frame;
 
 Sphere[MAX_MESH] spheres;
 uint spheres_size = 0;
 
-
+// Core raytracing mechanic
 vec4 Trace(Ray r){
     float t = 0;
     float min_distance = 10000.f;
@@ -55,6 +56,62 @@ vec4 Trace(Ray r){
     return cur_r.throughput*BACKGROUND_COLOR;
 }
 
+
+// Basic raytracing
+vec4 basicRayTracing(){
+    vec2 uv = uvScreen;
+    uv = (uv - 0.5) * 2;
+    uv.x *= camera.aspectRatio;
+    float z = 1.0 / tan(camera.fov * 0.5);
+    vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
+    rayDir = normalize(mat3(inverse(camera.view)) * rayDir);
+    Ray r = { camera.position, rayDir, vec4(1, 1, 1, 1) };
+    return Trace(r);
+}
+
+// Multisampling raytracing
+vec2[MULTISAMPLING_SIZE*MULTISAMPLING_SIZE] generateMultiSamplingUV(vec2 uv){
+    vec2 step = vec2(1.0/windowSize.x, 1.0/windowSize.y) / float(MULTISAMPLING_SIZE);
+    vec2[MULTISAMPLING_SIZE*MULTISAMPLING_SIZE] msUVs;
+    vec2 offset = vec2(-0.5f/windowSize.x,-0.5f/windowSize.y) + vec2(0.5f/(windowSize.x*MULTISAMPLING_SIZE),0.5f/(windowSize.y*MULTISAMPLING_SIZE));
+    for (uint x = 0; x < MULTISAMPLING_SIZE; x++){
+        for (uint y = 0; y < MULTISAMPLING_SIZE; y++){
+            msUVs[MULTISAMPLING_SIZE*x + y] = uv + offset + vec2(step.x * float(x), step.y * float(y));
+        }
+    }
+    return msUVs;
+}
+
+vec4 multiSamplingRayTracing(){
+    vec2[MULTISAMPLING_SIZE*MULTISAMPLING_SIZE] uvs = generateMultiSamplingUV(uvScreen);
+    vec4 sum_color = vec4(0,0,0,0);
+    for (uint ray_id = 0; ray_id < MULTISAMPLING_SIZE*MULTISAMPLING_SIZE; ray_id++)
+    {
+        vec2 uv = uvs[ray_id];
+        uv = (uv - 0.5) * 2;
+        uv.x *= camera.aspectRatio;
+        float z = 1.0 / tan(camera.fov * 0.5);
+        vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
+        rayDir = normalize(mat3(inverse(camera.view)) * rayDir);
+        Ray r = { camera.position, rayDir, vec4(1, 1, 1, 1) };
+        sum_color += Trace(r);
+    }
+
+    return sum_color/(MULTISAMPLING_SIZE*MULTISAMPLING_SIZE);
+}
+
+// Randomsampling raytracing
+vec4 randomRayTracing(){
+    vec2 uv = uvScreen + (vec2(rand(), rand()) - 0.5) / windowSize;
+    uv = (uv - 0.5) * 2;
+    uv.x *= camera.aspectRatio;
+    float z = 1.0 / tan(camera.fov * 0.5);
+    vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
+    rayDir = normalize(mat3(inverse(camera.view)) * rayDir);
+    Ray r = { camera.position, rayDir, vec4(1, 1, 1, 1) };
+    return Trace(r);
+}
+
 void main() {
     seed = uint(gl_FragCoord.x*100000) * 1973u + uint(gl_FragCoord.y*100000) * 9277u + uint(frame) * 26699u;
 
@@ -79,17 +136,9 @@ void main() {
     spheres[2] = s2;
     spheres_size++;
 
-    vec2 uv = (uvScreen-0.5)*2;
-    uv.x *= camera.aspectRatio;
-    float z = 1.0 / tan(camera.fov * 0.5);
-    vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
-    rayDir = normalize(mat3(inverse(camera.view)) * rayDir);
-    Ray r = {camera.position,rayDir,vec4(1,1,1,1)};
+    vec4 color = randomRayTracing();
 
-    vec4 color = Trace(r);
-
-
-    float lambda = 1.0/frame;
+    float lambda = 1.0/float(frame);
     vec4 bufferColor = vec4(texture(readTex,uvScreen).rgb,1);
     fragColor = lambda*color + bufferColor*(1-lambda);
 

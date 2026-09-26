@@ -1,3 +1,8 @@
+extern "C" {
+__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+
 #include "OpenGLIncludes.h"
 #include "Parameters.h"
 #include "Globals.h"
@@ -28,6 +33,10 @@ void start() {
 
     // setting the window user pointer
     glfwSetWindowUserPointer(window, context.get());
+
+    std::cout << "Vendor: "   << glGetString(GL_VENDOR)   << "\n";
+    std::cout << "Renderer: " << glGetString(GL_RENDERER) << "\n";
+    std::cout << "Version: "  << glGetString(GL_VERSION)  << "\n";
 }
 
 void update(){

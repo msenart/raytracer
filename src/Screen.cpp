@@ -41,7 +41,7 @@ Screen::Screen() {
     glBindTexture(GL_TEXTURE_2D, fbo1_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
     fbo1->attachTexture2D(fbo1_tex);
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cerr<<"ERROR::FRAMEBUFFER:: Framebuffer is not complete"<<std::endl;
@@ -53,7 +53,7 @@ Screen::Screen() {
     glBindTexture(GL_TEXTURE_2D, fbo2_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
     fbo2->attachTexture2D(fbo2_tex);
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cerr<<"ERROR::FRAMEBUFFER:: Framebuffer is not complete"<<std::endl;
@@ -65,6 +65,7 @@ Screen::Screen() {
 void Screen::draw() {
     sp->bind();
     sp->set("frame",frame);
+    sp->set("windowSize", glm::vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
     vao->bind();
     // choosing which fbo to render
     auto read_fbo = isFbo1 ? fbo1 : fbo2;
@@ -114,7 +115,7 @@ void Screen::resetTextures() {
 
 void Screen::windowResizeCallback(GLFWwindow *window, int width, int height) const {
     glBindTexture(GL_TEXTURE_2D, fbo1_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
     glBindTexture(GL_TEXTURE_2D, fbo2_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
 }
