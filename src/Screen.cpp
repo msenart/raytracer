@@ -84,7 +84,6 @@ void Screen::draw() {
     auto context = static_cast<Context*>(glfwGetWindowUserPointer(window));
     context->camera.setShaderValues(sp);
 
-    glClearColor(1.00f, 0.49f, 0.04f, 1.00f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     glDrawElements(GL_TRIANGLES, 6  , GL_UNSIGNED_INT, nullptr);
@@ -95,7 +94,6 @@ void Screen::draw() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D,write_tex);
     sp->set("renderTex",0);
-    glClearColor(1.00f, 0.49f, 0.04f, 1.00f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     glDrawElements(GL_TRIANGLES, 6  , GL_UNSIGNED_INT, nullptr);
@@ -105,10 +103,8 @@ void Screen::draw() {
 
 void Screen::resetTextures() {
     glBindTexture(GL_TEXTURE_2D, fbo1_tex);
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     glBindTexture(GL_TEXTURE_2D, fbo1_tex);
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     frame = 1;
 }
