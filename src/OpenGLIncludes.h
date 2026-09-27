@@ -10,6 +10,10 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+// #include "assimp/Importer.hpp"
+// #include "assimp/mesh.h"
+// #include "assimp/postprocess.h"
+// #include "assimp/scene.h"
 #include <glm/ext/matrix_transform.hpp>
 #include <vector>
 #include <unordered_set>

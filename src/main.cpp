@@ -1,12 +1,15 @@
-extern "C" {
-__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
-__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
-}
-
 #include "OpenGLIncludes.h"
 #include "Parameters.h"
 #include "Globals.h"
 #include "Context.h"
+#include "MeshManager.h"
+#include "Mesh.h"
+#include "MeshHelpers.h"
+
+extern "C" {
+__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
 
 std::shared_ptr<Context> context;
 
@@ -22,21 +25,38 @@ void ProcessInput(GLFWwindow* window)
 void start() {
     // make the cursor disappear on focusing the window
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
     Context ctx = {
         .camera = {glm::radians(90.f),(float) WINDOW_WIDTH,(float) WINDOW_HEIGHT,1,100},
         .screen = {}
     };
-
     context = std::make_shared<Context>(ctx);
     context->camera.can_move = true;
-
     // setting the window user pointer
     glfwSetWindowUserPointer(window, context.get());
 
+    // display hardware accelerator specs
     std::cout << "Vendor: "   << glGetString(GL_VENDOR)   << "\n";
     std::cout << "Renderer: " << glGetString(GL_RENDERER) << "\n";
     std::cout << "Version: "  << glGetString(GL_VERSION)  << "\n";
+
+    // setting up the mesh scene
+
+    MeshManager manager;
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    std::shared_ptr<Mesh> mesh;
+
+    MeshHelpers::generateCube(vertices, indices);
+    mesh = std::make_shared<Mesh>(vertices, indices);
+    mesh->transform.position = glm::vec3(5.0f, 1.0f, 5.0f);
+    manager.addMesh(mesh);
+
+    MeshHelpers::generateSphere(vertices, indices);
+    mesh = std::make_shared<Mesh>(vertices, indices);
+    mesh->transform.position = glm::vec3(-5.0f, 1.0f, 5.0f);
+    manager.addMesh(std::make_shared<Mesh>(vertices, indices));
+
+    manager.buildSSBO();
 }
 
 void update(){
@@ -50,8 +70,8 @@ int main()
 {
     try {
         glfwInit();
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
         // Construct the window

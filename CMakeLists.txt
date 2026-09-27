@@ -49,7 +49,13 @@ add_executable(raytracer ${sources}
         src/Screen.cpp
         src/Screen.h
         src/Globals.h
-        src/Context.h)
+        src/Context.h
+        src/MeshHelpers.cpp
+        src/MeshHelpers.h
+        src/Mesh.cpp
+        src/Mesh.h
+        src/MeshManager.cpp
+        src/MeshManager.h)
 
 target_precompile_headers(raytracer PRIVATE src/OpenGLIncludes.h)
 
