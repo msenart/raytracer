@@ -61,6 +61,13 @@ vec4 Trace(Ray r){
                 return cur_r.throughput*BACKGROUND_COLOR;
             }
         }
+        // russian roulette : if the ray has not enough energy, the ray might be discarded before the end of the iterations
+//        float p = clamp(max(max(cur_r.throughput.r, cur_r.throughput.g), cur_r.throughput.b), 0.05, 1.0);
+//        if (rand() > p) {
+//            return BACKGROUND_COLOR;   // ray dies here : terminate the path
+//        }
+//        cur_r.throughput /= p;
+
         t+=abs(min_distance);
     }
 
@@ -68,6 +75,29 @@ vec4 Trace(Ray r){
     return cur_r.throughput*BACKGROUND_COLOR;
 }
 
+// No blurring
+
+Ray setWorldRay(vec3 d){
+    mat3 camToWorld = mat3(inverse(camera.view));
+    vec3 worldRayDir = normalize(camToWorld * d);
+    return Ray(camera.position, worldRayDir, vec4(1, 1, 1, 1), MAX_MESH);
+}
+
+// Focus blurring
+
+Ray setWorldRayFocusBlur(vec3 d){
+    vec3 focusPoint = d*camera.focusDistance;
+
+    vec3 lensOffset = vec3(camera.apertureRadius * randomUnitVectorInDisk(), 0.0);
+
+    vec3 newOrigin = lensOffset;
+    vec3 newDir = normalize(focusPoint - lensOffset);
+
+    mat3 camToWorld = mat3(inverse(camera.view));
+    vec3 worldOrigin = camera.position + camToWorld * newOrigin;
+    vec3 worldDirection = normalize(camToWorld * newDir);
+    return Ray(worldOrigin, worldDirection, vec4(1, 1, 1, 1), MAX_MESH);
+}
 
 // Basic raytracing
 vec4 basicRayTracing(){
@@ -121,8 +151,7 @@ vec4 randomRayTracing(){
         uv.x *= camera.aspectRatio;
         float z = 1.0 / tan(camera.fov * 0.5);
         vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
-        rayDir = normalize(mat3(inverse(camera.view)) * rayDir);
-        Ray r = { camera.position, rayDir, vec4(1, 1, 1, 1), MAX_MESH };
+        Ray r = setWorldRay(rayDir);
         sum_color+=Trace(r);
     }
     return sum_color/RANDOM_SAMPLING_SIZE;

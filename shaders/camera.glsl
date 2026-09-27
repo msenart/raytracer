@@ -10,6 +10,8 @@ struct Camera {
     float aspectRatio;
     float nearPlane;
     float farPlane;
+    float apertureRadius;
+    float focusDistance;
 };
 
 #endif

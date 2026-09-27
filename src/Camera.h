@@ -28,6 +28,9 @@ public:
     float yaw = -90.0f;
     float pitch = 0.0f;
 
+    float apertureRadius = glm::radians(10.0f);
+    float focusDistance = 5.f;
+
     bool can_move = false;
     bool is_moving = false;
     float lastX;

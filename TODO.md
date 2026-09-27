@@ -6,8 +6,9 @@
 - [X] raytracing random sampling
 - [X] Lambert reflection
 - [X] Metal reflection
-- [ ] Glass reflection/refraction
-- [ ] Handling glass overlapping ?
+- [X] Glass reflection/refraction
+- [X] Focus blurring
+- [X] Russian roulette
 - [X] Implement auto-refresh when moving
 - [ ] Naive raytracing for meshes
 - [ ] Implement acceleration structures on meshes

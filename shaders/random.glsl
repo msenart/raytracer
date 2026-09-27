@@ -24,15 +24,18 @@ int randint(int min, int max){
     return int(floor(min + rand()*(max - min)));
 }
 
-vec3 shitRandomUnitVector(){
-    return normalize(vec3(rand(-1,1),rand(-1,1),rand(-1,1)));
-}
-
 vec3 randomUnitVector(){
     float z = rand(-1,1);
     float theta = rand(0,2*PI);
     float r = sqrt(1-z*z);
     return normalize(vec3(r*cos(theta), r*sin(theta), z));
 }
+
+vec2 randomUnitVectorInDisk(){
+    float r = rand();
+    float theta = rand()*2*PI;
+    return vec2(r*cos(theta),r*sin(theta));
+}
+
 
 #endif
