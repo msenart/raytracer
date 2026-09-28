@@ -1,10 +1,12 @@
 #version 450 core
 
 #include "camera.glsl"
-#include "sphereSDF.glsl"
+#include "sphereEQ.glsl"
 #include "params.glsl"
 #include "ray.glsl"
 #include "reflections.glsl"
+#include "triangleEQ.glsl"
+#include "vertices.glsl"
 
 uniform sampler2D readTex;
 
@@ -18,93 +20,68 @@ uniform uint frame;
 Sphere[MAX_MESH] spheres;
 uint spheres_size = 0;
 
-// Vertices SSBO
+//Material SSBO
 
-struct Vertex{
-    vec3 position;  float _pad0;
-    vec3 normal;    float _pad1;
-    vec4 tangent;
-    vec2 uv;        vec2 _pad2;
+layout(std430, binding = 2) readonly buffer MaterialBuffer {
+    Material materials[];
 };
-
-layout(std430, binding = 0) readonly buffer VertexBuffer {
-    Vertex vertices[];
-};
-
-// Indices SSBO
-
-struct IndexAndMeshID{
-    uint index;
-    uint mesh_id;
-    uint _pad0;
-    uint _pad1;
-};
-
-layout(std430, binding = 1) readonly buffer IndicesBuffer {
-    IndexAndMeshID indices[];
-};
-
-// Möller-Trumbore algorithm
-
-struct HitProperties{
-    bool hasHit;
-    float t;
-    float u;
-    float v;
-};
-
-HitProperties isRayIntersectingTriangle(Ray r, uint i0, uint i1, uint i2){
-    vec3 v0 = vertices[i0].position;
-    vec3 v1 = vertices[i1].position;
-    vec3 v2 = vertices[i2].position;
-
-    vec3 e1 = v1 - v0;
-    vec3 e2 = v2 - v0;
-
-    vec3 h = cross(r.d, e2);
-    float a = dot(h, e1);
-    if (abs(a) < eps){
-        return HitProperties(false, 0, 0, 0);
-    }
-    float f = 1.f/a;
-    vec3 s = r.o - v0;
-    float u = f * dot(h,s);
-    if (u < 0.0 || u > 1.0){
-        return HitProperties(false, 0, 0, 0);
-    }
-    vec3 q = cross(s,e1);
-    float v = f * dot(r.d,q);
-    if (v < 0.0 || u + v > 1.0){
-        return HitProperties(false, 0, 0, 0);
-    }
-
-    float t = f * dot(q, e2);
-    if (t > eps)
-    {
-        return HitProperties(true, t, u, v);
-    }
-    else
-    return HitProperties(false, 0, 0, 0);
-}
 
 // Core raytracing mechanic
-Material airMaterial = Material(2,vec4(1,1,1,1),false,0.f, 1.f);
+const Material airMaterial = Material(vec4(1.0), 2u, 0.0, 1.0, 0.0);
 
 vec4 Trace(Ray r) {
-    float min_distance = 10000.0;
-    uint argmin_mesh = MAX_MESH;
-    uint argmin_triangle = 0; // you'll want this for shading
-
-    for (uint i = 0; i < indices.length(); i += 3) {
-        HitProperties hp = isRayIntersectingTriangle(r, indices[i].index, indices[i+1].index, indices[i+2].index);
-        if (hp.hasHit && hp.t < min_distance) {
-            min_distance = hp.t;
-            argmin_mesh = indices[i].mesh_id;
-            argmin_triangle = i; // remember which triangle, for shading later
+    float min_distance = FLOAT_MAX;
+    uint argmin_mesh_type = UINT_MAX;
+    uint argmin_mesh = UINT_MAX;
+    uint argmin_triangle = UINT_MAX; // you'll want this for shading triangles
+    Ray cur_r = r;
+    HitProperties argmin_hp = HitProperties(false, 0, vec2(0), vec3(0));
+    for (uint depth = 0; depth < MAX_ITER; depth++){
+        min_distance = FLOAT_MAX;
+        argmin_mesh_type = UINT_MAX;
+        argmin_mesh = UINT_MAX;
+        argmin_triangle = UINT_MAX;
+        argmin_hp = HitProperties(false, 0, vec2(0), vec3(0));
+        for (uint i = 0; i < indices.length(); i += 3) { // handling triangles (mesh_type = 0)
+            HitProperties hp = isRayIntersectingTriangle(cur_r, indices[i].index, indices[i+1].index, indices[i+2].index, false); // materials[argmin_mesh].normalInterpolation
+            if (hp.hasHit && hp.t < min_distance) {
+                min_distance = hp.t;
+                argmin_mesh_type = 0;
+                argmin_mesh = indices[i].mesh_id;
+                argmin_triangle = i; // remember which triangle, for shading later
+                argmin_hp = hp;
+            }
         }
-    }
-    if (argmin_mesh < MAX_MESH) {
-        return vec4(0.7f, 0, 0, 1); // placeholder — see below
+        for (uint i = 0; i < spheres_size; i++) { // handling spheres equations (mesh_type = 1)
+            HitProperties hp = isRayIntersectingSphere(cur_r,spheres[i]);
+            if (hp.hasHit && hp.t < min_distance) {
+                min_distance = hp.t;
+                argmin_mesh_type = 1;
+                argmin_mesh = i;
+            }
+        }
+        if (argmin_mesh < UINT_MAX){ // if the ray has hit a mesh
+            if (materials[argmin_mesh].id == 0){ // the mesh is emissive
+                return materials[argmin_mesh].color*cur_r.throughput;
+            }
+            vec3 N = argmin_hp.normal;
+            vec3 O = cur_r.o + cur_r.d*argmin_hp.t;
+            // we assume that there is NO intersection between the spheres, otherwise it is complicated.
+            // when going OUT of the sphere, it is always Material -> Air
+            // when going IN the sphere, it is always Air -> Material
+            bool isGoingOut = argmin_mesh == cur_r.in_obj_id;
+            Material previousMaterial = isGoingOut ? materials[cur_r.in_obj_id] : airMaterial; // Somewhere here, we need a mean to use argmin_mesh_type so to look in the right material.
+            Material nextMaterial = isGoingOut ? airMaterial : materials[argmin_mesh];
+            vec3 R = sampleReflection(cur_r.d, N, previousMaterial, nextMaterial);
+
+            float isReflection = -sign(dot(R,N)*dot(cur_r.d,N)); // 1 if reflection, -1 if refraction.
+            uint new_in_mesh_id = isReflection == 1.f ? cur_r.in_obj_id :
+            (isGoingOut ? MAX_MESH : argmin_mesh);
+            cur_r = Ray(O + isReflection*2*eps*N,R,cur_r.throughput*nextMaterial.color,new_in_mesh_id);
+        }
+        else { // if the ray has hit nothing
+            return BACKGROUND_COLOR*cur_r.throughput;
+        }
     }
     return BACKGROUND_COLOR; // or background color
 }
@@ -194,7 +171,28 @@ vec4 randomRayTracing(){
 void main() {
     seed = uint(gl_FragCoord.x*100000) * 1973u + uint(gl_FragCoord.y*100000) * 9277u + uint(frame) * 26699u;
 
-    vec4 color = basicRayTracing();
+//    Sphere s0 = Sphere(
+//            vec3(0.f,0.f,5.f),
+//            0.5f,
+//            Material(vec4(1,1,1,1),1,0.f,1.f,0.f));
+//    spheres[0] = s0;
+//    spheres_size++;
+//
+//    Sphere s1 = Sphere(
+//            vec3(2.f,0.f,5.f),
+//            0.5f,
+//            Material(vec4(1,1,1,1),3,0.0f,1.2f,0.f));
+//    spheres[1] = s1;
+//    spheres_size++;
+//
+//    Sphere s2 = Sphere(
+//            vec3(0.f,-101.f,0.f),
+//            100.f,
+//            Material(vec4(.5f,1,.5f,1),1,0.f,1.f,0.f));
+//    spheres[2] = s2;
+//    spheres_size++;
+
+    vec4 color = randomRayTracing();
 
     float lambda = 1.0/float(frame);
     vec4 bufferColor = vec4(texture(readTex,uvScreen).rgb,1);

@@ -48,15 +48,30 @@ void start() {
 
     MeshHelpers::generateCube(vertices, indices);
     mesh = std::make_shared<Mesh>(vertices, indices);
-    mesh->transform.position = glm::vec3(5.0f, 1.0f, 5.0f);
+    mesh->transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
+    mesh->material.id = MaterialType::Light;
+    mesh->material.color = glm::vec4(1.0f);
+    mesh->material.eta = 1.5f;
     manager.addMesh(mesh);
 
     MeshHelpers::generateSphere(vertices, indices);
     mesh = std::make_shared<Mesh>(vertices, indices);
-    mesh->transform.position = glm::vec3(-5.0f, 1.0f, 5.0f);
-    manager.addMesh(std::make_shared<Mesh>(vertices, indices));
+    mesh->transform.position = glm::vec3(2.5f, 0.0f, 0.0f);
+    mesh->material.id = MaterialType::Glass;
+    mesh->material.color = glm::vec4(1.f);
+    mesh->material.eta = 1.5f;
+    manager.addMesh(mesh);
 
-    manager.buildSSBO();
+    MeshHelpers::generateSphere(vertices, indices);
+    mesh = std::make_shared<Mesh>(vertices, indices);
+    mesh->transform.position = glm::vec3(-2.5f, 0.0f, 0.0f);
+    mesh->material.id = MaterialType::Glass;
+    mesh->material.color = glm::vec4(1.f);
+    mesh->material.eta = 1.5f;
+    mesh->material.metal_fuzz = 0.3f;
+    manager.addMesh(mesh);
+
+    manager.buildSSBOs();
 }
 
 void update(){

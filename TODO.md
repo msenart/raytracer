@@ -1,5 +1,6 @@
 # TODO
 
+- [X] Improved shader compiler using includes
 - [X] Introducing raytracing for SDF Spheres
 - [X] Implement fbo double buffer
 - [X] raytracing Multisampling
@@ -10,5 +11,5 @@
 - [X] Focus blurring
 - [X] Russian roulette
 - [X] Implement auto-refresh when moving
-- [ ] Naive raytracing for meshes
+- [X] Naive raytracing for meshes
 - [ ] Implement acceleration structures on meshes

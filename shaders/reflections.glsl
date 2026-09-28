@@ -4,11 +4,11 @@
 #include "random.glsl"
 
 struct Material{
-    uint id;
     vec4 color;
-    bool emissive;
+    uint id;
     float metal_fuzz;
     float eta;
+    float _pad0;
 };
 
 vec3 reflect(vec3 L, vec3 N){
@@ -55,9 +55,9 @@ vec3 sampleGlassReflection(vec3 L, vec3 N, float previous_eta, float next_eta){
 }
 
 vec3 sampleReflection(vec3 L, vec3 N, Material previousMaterial, Material nextMaterial){
-    if (nextMaterial.id == 0) {return sampleLambertReflection(L,N);}
-    if (nextMaterial.id == 1) {return sampleMetalReflection(L,N, nextMaterial.metal_fuzz);}
-    if (nextMaterial.id == 2) {return sampleGlassReflection(L,N, previousMaterial.eta ,nextMaterial.eta);}
+    if (nextMaterial.id == 1) {return sampleLambertReflection(L,N);}
+    if (nextMaterial.id == 2) {return sampleMetalReflection(L,N, nextMaterial.metal_fuzz);}
+    if (nextMaterial.id == 3) {return sampleGlassReflection(L,N, previousMaterial.eta ,nextMaterial.eta);}
     else {return vec3(0,0,0);}
 }
 

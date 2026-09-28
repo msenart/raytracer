@@ -19,7 +19,7 @@ void MeshManager::removeMesh(const unsigned int index) {
     meshes.erase(meshes.begin() + index);
 }
 
-void MeshManager::buildSSBO() {
+void MeshManager::buildSSBOs() {
 
     struct IndexAndMeshID {
         unsigned int index;
@@ -33,7 +33,7 @@ void MeshManager::buildSSBO() {
     // concatenating vertices and indices into one big array.
     auto vertices = std::vector<Vertex>();
     auto indices = std::vector<IndexAndMeshID>();
-
+    auto materials = std::vector<Material>();
     unsigned int offset = 0;
     for (unsigned int i = 0; i < meshes.size(); i++) {
         for (const auto& vertex: meshes[i]->vertices) {
@@ -46,6 +46,7 @@ void MeshManager::buildSSBO() {
         for (const auto& index: meshes[i]->indices) {
             indices.emplace_back(offset + index, i);
         }
+        materials.push_back(meshes[i]->material);
         offset+=meshes[i]->vertices.size();
     }
 
@@ -57,4 +58,8 @@ void MeshManager::buildSSBO() {
     glCreateBuffers(1, &indices_ssbo);
     glNamedBufferData(indices_ssbo, indices.size() * sizeof(IndexAndMeshID), indices.data(), GL_STATIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indices_ssbo);
+
+    glCreateBuffers(1, &material_ssbo);
+    glNamedBufferData(material_ssbo, materials.size() * sizeof(Material), materials.data(), GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, material_ssbo);
 };
