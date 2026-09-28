@@ -5,6 +5,7 @@ struct Ray {
     vec3 o;
     vec3 d;
     vec4 throughput;
+    uint in_objtype_id;
     uint in_obj_id;
 };
 

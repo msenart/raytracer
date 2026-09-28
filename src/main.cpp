@@ -48,28 +48,51 @@ void start() {
 
     MeshHelpers::generateCube(vertices, indices);
     mesh = std::make_shared<Mesh>(vertices, indices);
-    mesh->transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
+    mesh->transform.position = glm::vec3(0.0f, 0.01f, 0.0f);
     mesh->material.id = MaterialType::Light;
     mesh->material.color = glm::vec4(1.0f);
     mesh->material.eta = 1.5f;
     manager.addMesh(mesh);
+    //
+    // MeshHelpers::generateSphere(vertices, indices);
+    // mesh = std::make_shared<Mesh>(vertices, indices);
+    // mesh->transform.position = glm::vec3(2.5f, 0.0f, 0.0f);
+    // mesh->material.id = MaterialType::Glass;
+    // mesh->material.color = glm::vec4(1.f);
+    // mesh->material.eta = 1.5f;
+    // manager.addMesh(mesh);
+    //
+    // MeshHelpers::generateSphere(vertices, indices);
+    // mesh = std::make_shared<Mesh>(vertices, indices);
+    // mesh->transform.position = glm::vec3(-2.5f, 0.0f, 0.0f);
+    // mesh->material.id = MaterialType::Glass;
+    // mesh->material.color = glm::vec4(1.f);
+    // mesh->material.eta = 1.5f;
+    // mesh->material.metal_fuzz = 0.3f;
+    // manager.addMesh(mesh);
 
-    MeshHelpers::generateSphere(vertices, indices);
-    mesh = std::make_shared<Mesh>(vertices, indices);
-    mesh->transform.position = glm::vec3(2.5f, 0.0f, 0.0f);
-    mesh->material.id = MaterialType::Glass;
-    mesh->material.color = glm::vec4(1.f);
-    mesh->material.eta = 1.5f;
-    manager.addMesh(mesh);
+    std::shared_ptr<Sphere> sphere;
 
-    MeshHelpers::generateSphere(vertices, indices);
-    mesh = std::make_shared<Mesh>(vertices, indices);
-    mesh->transform.position = glm::vec3(-2.5f, 0.0f, 0.0f);
-    mesh->material.id = MaterialType::Glass;
-    mesh->material.color = glm::vec4(1.f);
-    mesh->material.eta = 1.5f;
-    mesh->material.metal_fuzz = 0.3f;
-    manager.addMesh(mesh);
+    sphere = std::make_shared<Sphere>(glm::vec3(0.0f, 0.01f, 2.5f), 1.f);
+    sphere->material.id = MaterialType::Metallic;
+    sphere->material.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+    sphere->material.eta = 1.5f;
+    sphere->material.metal_fuzz = 0.3f;
+    manager.addSphere(sphere);
+
+    sphere = std::make_shared<Sphere>(glm::vec3(0.0f, 0.01f, -2.5f), 1.f);
+    sphere->material.id = MaterialType::Glass;
+    sphere->material.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+    sphere->material.eta = 1.5f;
+    sphere->material.metal_fuzz = 0.3f;
+    manager.addSphere(sphere);
+
+    sphere = std::make_shared<Sphere>(glm::vec3(0.0f, -1001.0f, -2.5f), 1000.f);
+    sphere->material.id = MaterialType::Lambertian;
+    sphere->material.color = glm::vec4(1.f);
+    sphere->material.eta = 1.5f;
+    sphere->material.metal_fuzz = 0.3f;
+    manager.addSphere(sphere);
 
     manager.buildSSBOs();
 }

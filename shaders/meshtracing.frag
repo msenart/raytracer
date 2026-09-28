@@ -17,12 +17,9 @@ uniform Camera camera;
 uniform vec2 windowSize;
 uniform uint frame;
 
-Sphere[MAX_MESH] spheres;
-uint spheres_size = 0;
-
 //Material SSBO
 
-layout(std430, binding = 2) readonly buffer MaterialBuffer {
+layout(std430, binding = 3) readonly buffer MaterialBuffer {
     Material materials[];
 };
 
@@ -33,14 +30,12 @@ vec4 Trace(Ray r) {
     float min_distance = FLOAT_MAX;
     uint argmin_mesh_type = UINT_MAX;
     uint argmin_mesh = UINT_MAX;
-    uint argmin_triangle = UINT_MAX; // you'll want this for shading triangles
     Ray cur_r = r;
     HitProperties argmin_hp = HitProperties(false, 0, vec2(0), vec3(0));
     for (uint depth = 0; depth < MAX_ITER; depth++){
         min_distance = FLOAT_MAX;
         argmin_mesh_type = UINT_MAX;
         argmin_mesh = UINT_MAX;
-        argmin_triangle = UINT_MAX;
         argmin_hp = HitProperties(false, 0, vec2(0), vec3(0));
         for (uint i = 0; i < indices.length(); i += 3) { // handling triangles (mesh_type = 0)
             HitProperties hp = isRayIntersectingTriangle(cur_r, indices[i].index, indices[i+1].index, indices[i+2].index, false); // materials[argmin_mesh].normalInterpolation
@@ -48,36 +43,50 @@ vec4 Trace(Ray r) {
                 min_distance = hp.t;
                 argmin_mesh_type = 0;
                 argmin_mesh = indices[i].mesh_id;
-                argmin_triangle = i; // remember which triangle, for shading later
                 argmin_hp = hp;
             }
         }
-        for (uint i = 0; i < spheres_size; i++) { // handling spheres equations (mesh_type = 1)
+        for (uint i = 0; i < spheres.length(); i++) { // handling spheres equations (mesh_type = 1)
             HitProperties hp = isRayIntersectingSphere(cur_r,spheres[i]);
             if (hp.hasHit && hp.t < min_distance) {
                 min_distance = hp.t;
                 argmin_mesh_type = 1;
                 argmin_mesh = i;
+                argmin_hp = hp;
             }
         }
         if (argmin_mesh < UINT_MAX){ // if the ray has hit a mesh
-            if (materials[argmin_mesh].id == 0){ // the mesh is emissive
+            if (argmin_mesh_type == 0 && materials[argmin_mesh].id == 0){ // the mesh is emissive
                 return materials[argmin_mesh].color*cur_r.throughput;
+            }
+            else if (argmin_mesh_type == 1 && materials[spheres[argmin_mesh].material_id].id == 0){
+                return materials[spheres[argmin_mesh].material_id].color*cur_r.throughput;
             }
             vec3 N = argmin_hp.normal;
             vec3 O = cur_r.o + cur_r.d*argmin_hp.t;
             // we assume that there is NO intersection between the spheres, otherwise it is complicated.
             // when going OUT of the sphere, it is always Material -> Air
             // when going IN the sphere, it is always Air -> Material
-            bool isGoingOut = argmin_mesh == cur_r.in_obj_id;
-            Material previousMaterial = isGoingOut ? materials[cur_r.in_obj_id] : airMaterial; // Somewhere here, we need a mean to use argmin_mesh_type so to look in the right material.
-            Material nextMaterial = isGoingOut ? airMaterial : materials[argmin_mesh];
+            Material previousMaterial;
+            Material nextMaterial;
+            bool isGoingOut = argmin_mesh == cur_r.in_obj_id && argmin_mesh_type == cur_r.in_objtype_id;
+            if (argmin_mesh_type == 0){ // is triangle
+                previousMaterial = isGoingOut ? materials[cur_r.in_obj_id] : airMaterial; // Somewhere here, we need a mean to use argmin_mesh_type so to look in the right material.
+                nextMaterial = isGoingOut ? airMaterial : materials[argmin_mesh];
+            }
+            if (argmin_mesh_type == 1){ // is sphere
+                previousMaterial = isGoingOut ? materials[spheres[cur_r.in_obj_id].material_id] : airMaterial; // Somewhere here, we need a mean to use argmin_mesh_type so to look in the right material.
+                nextMaterial = isGoingOut ? airMaterial : materials[spheres[argmin_mesh].material_id];
+            }
+
             vec3 R = sampleReflection(cur_r.d, N, previousMaterial, nextMaterial);
 
             float isReflection = -sign(dot(R,N)*dot(cur_r.d,N)); // 1 if reflection, -1 if refraction.
-            uint new_in_mesh_id = isReflection == 1.f ? cur_r.in_obj_id :
-            (isGoingOut ? MAX_MESH : argmin_mesh);
-            cur_r = Ray(O + isReflection*2*eps*N,R,cur_r.throughput*nextMaterial.color,new_in_mesh_id);
+            uint new_in_objtype_id = isReflection == 1.f ? cur_r.in_objtype_id :
+            (isGoingOut ? UINT_MAX : argmin_mesh_type);
+            uint new_in_obj_id = isReflection == 1.f ? cur_r.in_obj_id :
+            (isGoingOut ? UINT_MAX : argmin_mesh);
+            cur_r = Ray(O + isReflection*2*eps*N,R,cur_r.throughput*nextMaterial.color, new_in_objtype_id, new_in_obj_id);
         }
         else { // if the ray has hit nothing
             return BACKGROUND_COLOR*cur_r.throughput;
@@ -91,7 +100,7 @@ vec4 Trace(Ray r) {
 Ray setWorldRay(vec3 d){
     mat3 camToWorld = mat3(inverse(camera.view));
     vec3 worldRayDir = normalize(camToWorld * d);
-    return Ray(camera.position, worldRayDir, vec4(1, 1, 1, 1), MAX_MESH);
+    return Ray(camera.position, worldRayDir, vec4(1, 1, 1, 1), UINT_MAX, UINT_MAX);
 }
 
 // Focus blurring
@@ -107,7 +116,7 @@ Ray setWorldRayFocusBlur(vec3 d){
     mat3 camToWorld = mat3(inverse(camera.view));
     vec3 worldOrigin = camera.position + camToWorld * newOrigin;
     vec3 worldDirection = normalize(camToWorld * newDir);
-    return Ray(worldOrigin, worldDirection, vec4(1, 1, 1, 1), MAX_MESH);
+    return Ray(worldOrigin, worldDirection, vec4(1, 1, 1, 1), UINT_MAX, UINT_MAX);
 }
 
 // Basic raytracing
@@ -118,7 +127,7 @@ vec4 basicRayTracing(){
     float z = 1.0 / tan(camera.fov * 0.5);
     vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
     rayDir = normalize(mat3(inverse(camera.view)) * rayDir);
-    Ray r = { camera.position, rayDir, vec4(1, 1, 1, 1), MAX_MESH};
+    Ray r = Ray(camera.position, rayDir, vec4(1, 1, 1, 1), UINT_MAX, UINT_MAX);
     return Trace(r);
 }
 
@@ -146,7 +155,7 @@ vec4 multiSamplingRayTracing(){
         float z = 1.0 / tan(camera.fov * 0.5);
         vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
         rayDir = normalize(mat3(inverse(camera.view)) * rayDir);
-        Ray r = { camera.position, rayDir, vec4(1, 1, 1, 1), MAX_MESH};
+        Ray r = { camera.position, rayDir, vec4(1, 1, 1, 1), UINT_MAX, UINT_MAX};
         sum_color += Trace(r);
     }
 
@@ -170,27 +179,6 @@ vec4 randomRayTracing(){
 
 void main() {
     seed = uint(gl_FragCoord.x*100000) * 1973u + uint(gl_FragCoord.y*100000) * 9277u + uint(frame) * 26699u;
-
-//    Sphere s0 = Sphere(
-//            vec3(0.f,0.f,5.f),
-//            0.5f,
-//            Material(vec4(1,1,1,1),1,0.f,1.f,0.f));
-//    spheres[0] = s0;
-//    spheres_size++;
-//
-//    Sphere s1 = Sphere(
-//            vec3(2.f,0.f,5.f),
-//            0.5f,
-//            Material(vec4(1,1,1,1),3,0.0f,1.2f,0.f));
-//    spheres[1] = s1;
-//    spheres_size++;
-//
-//    Sphere s2 = Sphere(
-//            vec3(0.f,-101.f,0.f),
-//            100.f,
-//            Material(vec4(.5f,1,.5f,1),1,0.f,1.f,0.f));
-//    spheres[2] = s2;
-//    spheres_size++;
 
     vec4 color = randomRayTracing();
 

@@ -12,4 +12,6 @@
 - [X] Russian roulette
 - [X] Implement auto-refresh when moving
 - [X] Naive raytracing for meshes
+- [ ] Specular term ?
+- [ ] Optimize the raytracing main function
 - [ ] Implement acceleration structures on meshes

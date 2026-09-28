@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "OpenGLIncludes.h"
 #include "Shader.h"
 #include "MeshHelpers.h"
@@ -32,13 +34,21 @@ struct Material {
 
 struct Mesh {
     Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices);
-
-    void uploadUniforms(const Shader& shader) const;
+    Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices, Material material);
+    Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices, Material material, Transform transform);
 
     Material material;
     Transform transform;
-    glm::vec4 color;
 
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+};
+
+struct Sphere {
+    glm::vec3 pos;
+    float radius;
+    Material material;
+
+    Sphere(glm::vec3 pos, float radius, Material material);
+    Sphere(glm::vec3 pos, float radius);
 };
