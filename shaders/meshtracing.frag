@@ -71,22 +71,22 @@ vec4 Trace(Ray r) {
             Material nextMaterial;
             bool isGoingOut = argmin_mesh == cur_r.in_obj_id && argmin_mesh_type == cur_r.in_objtype_id;
             if (argmin_mesh_type == 0){ // is triangle
-                previousMaterial = isGoingOut ? materials[cur_r.in_obj_id] : airMaterial; // Somewhere here, we need a mean to use argmin_mesh_type so to look in the right material.
+                previousMaterial = isGoingOut ? materials[cur_r.in_obj_id] : airMaterial;
                 nextMaterial = isGoingOut ? airMaterial : materials[argmin_mesh];
             }
             if (argmin_mesh_type == 1){ // is sphere
-                previousMaterial = isGoingOut ? materials[spheres[cur_r.in_obj_id].material_id] : airMaterial; // Somewhere here, we need a mean to use argmin_mesh_type so to look in the right material.
+                previousMaterial = isGoingOut ? materials[spheres[cur_r.in_obj_id].material_id] : airMaterial;
                 nextMaterial = isGoingOut ? airMaterial : materials[spheres[argmin_mesh].material_id];
             }
 
-            vec3 R = sampleReflection(cur_r.d, N, previousMaterial, nextMaterial);
+            Reflection reflection = sampleReflection(cur_r.d, N, previousMaterial, nextMaterial);
 
-            float isReflection = -sign(dot(R,N)*dot(cur_r.d,N)); // 1 if reflection, -1 if refraction.
+            float isReflection = -sign(dot(reflection.R,N)*dot(cur_r.d,N)); // 1 if reflection, -1 if refraction.
             uint new_in_objtype_id = isReflection == 1.f ? cur_r.in_objtype_id :
             (isGoingOut ? UINT_MAX : argmin_mesh_type);
             uint new_in_obj_id = isReflection == 1.f ? cur_r.in_obj_id :
             (isGoingOut ? UINT_MAX : argmin_mesh);
-            cur_r = Ray(O + isReflection*2*eps*N,R,cur_r.throughput*nextMaterial.color, new_in_objtype_id, new_in_obj_id);
+            cur_r = Ray(O + isReflection*2*eps*N,reflection.R,cur_r.throughput*reflection.coef, new_in_objtype_id, new_in_obj_id);
         }
         else { // if the ray has hit nothing
             return BACKGROUND_COLOR*cur_r.throughput;

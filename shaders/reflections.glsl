@@ -11,16 +11,21 @@ struct Material{
     float _pad0;
 };
 
+struct Reflection{
+    vec3 R;
+    vec4 coef;
+};
+
 vec3 reflect(vec3 L, vec3 N){
     return L - 2*dot(L,N)*N;
 }
 
-vec3 sampleLambertReflection(vec3 L, vec3 N){
-    return normalize(normalize(N) + randomUnitVector());
+Reflection sampleLambertReflection(vec3 L, vec3 N, Material nextMaterial){
+    return Reflection(normalize(normalize(N) + randomUnitVector()), vec4(nextMaterial.color));
 }
 
-vec3 sampleMetalReflection(vec3 L, vec3 N, float metal_fuzz){
-    return reflect(L, N) + randomUnitVector()*metal_fuzz;
+Reflection sampleMetalReflection(vec3 L, vec3 N, Material nextMaterial){
+    return Reflection(reflect(L, N) + randomUnitVector()*nextMaterial.metal_fuzz, vec4(nextMaterial.color));
 }
 
 vec3 refraction(vec3 L, vec3 N, float previous_eta, float next_eta){
@@ -32,33 +37,32 @@ vec3 refraction(vec3 L, vec3 N, float previous_eta, float next_eta){
     return normalize(r_out_perp + r_out_parallel);
 }
 
-float reflectance(float cosine, float previous_eta, float next_eta) {
-    // Use Schlick's approximation for reflectance.
-    float ri = previous_eta/next_eta;
-    float r0 = (1 - ri) / (1 + ri);
-    r0 = r0*r0;
-    return r0 + (1-r0)*pow((1 - cosine),5);
+float fresnelDielectric(float cosI, float n1, float n2){
+    float sinT = (n1 / n2) * sqrt(max(0.0, 1.0 - cosI * cosI));
+    if (sinT >= 1.0) return 1.0;                  // total internal reflection
+    float cosT = sqrt(1.0 - sinT * sinT);
+    float rs = (n1 * cosI - n2 * cosT) / (n1 * cosI + n2 * cosT);
+    float rp = (n2 * cosI - n1 * cosT) / (n2 * cosI + n1 * cosT);
+    return 0.5 * (rs * rs + rp * rp);
 }
 
-vec3 sampleGlassReflection(vec3 L, vec3 N, float previous_eta, float next_eta){
-    vec3 correctedN = dot(L, N) < 0.0 ? N : -N;
-    float cos_theta = min(dot(-L, correctedN), 1.0);
-    float sin_theta = sqrt(1.0 - cos_theta*cos_theta);
-    vec3 direction;
-    if ((previous_eta/next_eta) * sin_theta > 1.0 || reflectance(cos_theta, previous_eta, next_eta) > rand()){ // cannot refract with Snell-Descartes Law
-        direction = reflect(L, N);
-    }
-    else { // can refract with Snell-Descartes
-        direction = refraction(L, N, previous_eta, next_eta);
-    }
-    return direction;
+Reflection sampleGlassReflection(vec3 L, vec3 N, Material prev, Material next){
+    vec3 n = dot(L, N) < 0.0 ? N : -N;
+    float cosI = min(dot(-L, n), 1.0);
+    float F = fresnelDielectric(cosI, prev.eta, next.eta);
+
+    if (F > rand())
+    { return Reflection(reflect(L, n), vec4(1.0)); }
+
+    return Reflection(refraction(L, n, prev.eta, next.eta), next.color);
 }
 
-vec3 sampleReflection(vec3 L, vec3 N, Material previousMaterial, Material nextMaterial){
-    if (nextMaterial.id == 1) {return sampleLambertReflection(L,N);}
-    if (nextMaterial.id == 2) {return sampleMetalReflection(L,N, nextMaterial.metal_fuzz);}
-    if (nextMaterial.id == 3) {return sampleGlassReflection(L,N, previousMaterial.eta ,nextMaterial.eta);}
-    else {return vec3(0,0,0);}
+Reflection sampleReflection(vec3 L, vec3 N, Material previousMaterial, Material nextMaterial){
+    if (nextMaterial.id == 1) {return sampleLambertReflection(L,N, nextMaterial);}
+    if (nextMaterial.id == 2) {return sampleMetalReflection(L,N, nextMaterial);}
+    if (nextMaterial.id == 3) {return sampleGlassReflection(L,N, previousMaterial ,nextMaterial);}
+//    if (nextMaterial.id == 4)
+    else {return Reflection(vec3(0), vec4(0));}
 }
 
 #endif

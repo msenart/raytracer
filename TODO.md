@@ -12,6 +12,8 @@
 - [X] Russian roulette
 - [X] Implement auto-refresh when moving
 - [X] Naive raytracing for meshes
-- [ ] Specular term ?
-- [ ] Optimize the raytracing main function
+- [X] Specular term for glass using the original Fresnel equation
+- [ ] Introduce wavelength and refraction index/reflection index 
+- [ ] Using GGX to estimate the specular term on top of Lambertian surfaces.
+- [ ] Implement Disney diffuse and GGX specular on top of it.
 - [ ] Implement acceleration structures on meshes
