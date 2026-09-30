@@ -3,11 +3,11 @@
 
 #include "params.glsl"
 #include "random.glsl"
-
+#include "material.glsl"
 // all wavelengths are in µm.
 
-float iorSellmeier(vec3 B, vec3 C, float l) {
-    float l2 = l * l;
+float iorSellmeier(vec3 B, vec3 C, float lambdaUm) {
+    float l2 = lambdaUm * lambdaUm;
     return sqrt(1.0 + dot(B, l2 / (vec3(l2) - C)));
 }
 
@@ -15,7 +15,6 @@ float sampleWLVisible(){
     return LAMBDA_MIN + rand() * (LAMBDA_MAX - LAMBDA_MIN);
 }
 
-const float PI      = 3.14159265359;
 const float C2      = 1.438777e-2;          // hc/k  [m*K]
 
 float planckPdfNm(float lambdaUm, float T) {
@@ -25,8 +24,6 @@ float planckPdfNm(float lambdaUm, float T) {
     float px  = (15.0 / (PI*PI*PI*PI)) * x*x*x / em1;
     return px * x / lambdaUm;
 }
-
-#define N_BINS 16
 
 float reflectanceAt(Material m, float lambdaUm) {
     float t = clamp((lambdaUm - LAMBDA_MIN) / (LAMBDA_MAX - LAMBDA_MIN), 0.0, 1.0);

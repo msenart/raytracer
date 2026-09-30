@@ -6,6 +6,7 @@
 #include "Shader.h"
 #include "MeshHelpers.h"
 #include "Transform.h"
+#include <array>
 
 enum struct MaterialType : unsigned int {
     Light = 0,
@@ -15,20 +16,22 @@ enum struct MaterialType : unsigned int {
 };
 
 struct Material {
-    glm::vec4 color;
+    std::array<float, 16> reflectance;
     MaterialType id;
     float metal_fuzz;
-    float eta;
-    float _pad0;
+    float T;
+    float _pad0 = 0;
+    glm::vec3 B;
+    float _pad1 = 0;
+    glm::vec3 C;
+    float _pad2 = 0;
 
-    Material() :
-    color(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)),
-    id(MaterialType::Lambertian),
-    metal_fuzz(0.0f),
-    eta(1.0f),
-    _pad0(0)
-    {
-
+    Material() :    id(MaterialType::Lambertian),
+                    metal_fuzz(0.0f),
+                    T(293),
+                    B(1.0f),
+                    C(1.0f) {
+        reflectance.fill(1.f);
     }
 };
 
