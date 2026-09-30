@@ -13,7 +13,8 @@
 - [X] Implement auto-refresh when moving
 - [X] Naive raytracing for meshes
 - [X] Specular term for glass using the original Fresnel equation
-- [ ] Introduce wavelength and refraction index/reflection index 
+- [ ] Introduce wavelength and refraction index/reflection index
+- [ ] Investigate why the scene is always so dark.
 - [ ] Using GGX to estimate the specular term on top of Lambertian surfaces.
 - [ ] Implement Disney diffuse and GGX specular on top of it.
 - [ ] Implement acceleration structures on meshes

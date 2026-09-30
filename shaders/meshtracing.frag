@@ -92,7 +92,7 @@ vec4 Trace(Ray r) {
             return BACKGROUND_COLOR*cur_r.throughput;
         }
     }
-    return BACKGROUND_COLOR; // or background color
+    return BACKGROUND_COLOR*cur_r.throughput; // or background color
 }
 
 // No blurring
