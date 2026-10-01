@@ -2,13 +2,13 @@
 #define MATERIAL_GLSL
 
 struct Material{
-    float reflectance[N_BINS];
+    float albedo[N_BINS];
     uint id;
     float metal_fuzz;
     float T;
-    float _pad0;
+    float intensity;
     vec3 B;
-    float _pad1;
+    float eta_test;
     vec3 C;
     float _pad2;
 };

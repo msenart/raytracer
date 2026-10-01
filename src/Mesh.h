@@ -16,13 +16,13 @@ enum struct MaterialType : unsigned int {
 };
 
 struct Material {
-    std::array<float, 16> reflectance;
+    std::array<float, 16> albedo{};
     MaterialType id;
     float metal_fuzz;
     float T;
-    float _pad0 = 0;
+    float intensity = 0;
     glm::vec3 B;
-    float _pad1 = 0;
+    float eta_test = 1;
     glm::vec3 C;
     float _pad2 = 0;
 
@@ -31,7 +31,7 @@ struct Material {
                     T(293),
                     B(1.0f),
                     C(1.0f) {
-        reflectance.fill(1.f);
+        albedo.fill(1.f);
     }
 };
 

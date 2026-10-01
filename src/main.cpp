@@ -41,15 +41,6 @@ void start() {
 
     // setting up the mesh scene
 
-    const std::array<float,16> DIAMOND_R0 = {
-        0.1786f, 0.1775f, 0.1764f, 0.1756f,
-        0.1748f, 0.1741f, 0.1736f, 0.1731f,
-        0.1726f, 0.1722f, 0.1718f, 0.1715f,
-        0.1712f, 0.1709f, 0.1707f, 0.1704f
-    };
-
-
-
     MeshManager manager;
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -57,11 +48,13 @@ void start() {
 
     MeshHelpers::generateCube(vertices, indices);
     mesh = std::make_shared<Mesh>(vertices, indices);
-    mesh->transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
+    mesh->transform.position = glm::vec3(0.0f, 0.0f, 2.0f);
     mesh->material.id = MaterialType::Light;
-    mesh->material.reflectance.fill(1.f);
+    mesh->material.intensity = 10.f;
+    mesh->material.albedo.fill(1.f);
     mesh->material.B = glm::vec3(4.8669e-4, 5.8546e-5, 0.0);
-    mesh->material.C = glm::vec3(0.0042014, 0.017433, 1.0);
+    mesh->material.C = glm::vec3(0.0042014, 0.017433, 100.0);
+    mesh->material.T = 5000.f;
     manager.addMesh(mesh);
     //
     // MeshHelpers::generateSphere(vertices, indices);
@@ -92,18 +85,20 @@ void start() {
     //
     sphere = std::make_shared<Sphere>(glm::vec3(0.0f, 0.01f, -2.5f), 1.f);
     sphere->material.id = MaterialType::Glass;
-    sphere->material.reflectance = DIAMOND_R0;
+    sphere->material.albedo.fill(1.f);
     sphere->material.B = glm::vec3(4.3356, 0.3306, 0.0);
-    sphere->material.C = glm::vec3(0.011236, 0.030625, 1.0);
+    sphere->material.C = glm::vec3(0.011236, 0.030625, 100.0);
     sphere->material.metal_fuzz = 0.3f;
+    sphere->material.eta_test = 1.5f;
     manager.addSphere(sphere);
-
+    //
     sphere = std::make_shared<Sphere>(glm::vec3(0.0f, -1001.0f, -2.5f), 1000.f);
     sphere->material.id = MaterialType::Lambertian;
-    sphere->material.reflectance.fill(1.f);
+    sphere->material.albedo.fill(1.f);
     sphere->material.B = glm::vec3(4.8669e-4, 5.8546e-5, 0.0);
-    sphere->material.C = glm::vec3(0.0042014, 0.017433, 1.0);
+    sphere->material.C = glm::vec3(0.0042014, 0.017433, 100.0);
     sphere->material.metal_fuzz = 0.3f;
+    sphere->material.eta_test = 1.5f;
     manager.addSphere(sphere);
 
     manager.buildSSBOs();

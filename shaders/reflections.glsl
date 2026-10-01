@@ -16,11 +16,11 @@ vec3 reflect(vec3 L, vec3 N){
 }
 
 Reflection sampleLambertReflection(vec3 L, vec3 N, float lambdaUm, Material nextMaterial){
-    return Reflection(normalize(normalize(N) + randomUnitVector()), reflectanceAt(nextMaterial, lambdaUm));
+    return Reflection(normalize(normalize(N) + randomUnitVector()), albedoAt(nextMaterial, lambdaUm));
 }
 
 Reflection sampleMetalReflection(vec3 L, vec3 N, float lambdaUm, Material nextMaterial){
-    return Reflection(reflect(L, N) + randomUnitVector()*nextMaterial.metal_fuzz, reflectanceAt(nextMaterial, lambdaUm));
+    return Reflection(reflect(L, N) + randomUnitVector()*nextMaterial.metal_fuzz, albedoAt(nextMaterial, lambdaUm));
 }
 
 vec3 refraction(vec3 L, vec3 N, float previous_eta, float next_eta){
@@ -44,14 +44,16 @@ float fresnelDielectric(float cosI, float n1, float n2){
 Reflection sampleGlassReflection(vec3 L, vec3 N, float lambdaUm, Material prev, Material next){
     vec3 n = dot(L, N) < 0.0 ? N : -N;
     float cosI = min(dot(-L, n), 1.0);
-    float eta_prev = iorSellmeier(prev.B, prev.C, lambdaUm);
-    float eta_next = iorSellmeier(next.B, next.C, lambdaUm);
+//    float eta_prev = iorSellmeier(prev.B, prev.C, lambdaUm);
+//    float eta_next = iorSellmeier(next.B, next.C, lambdaUm);
+    float eta_prev = prev.eta_test;
+    float eta_next = next.eta_test;
     float F = fresnelDielectric(cosI, eta_prev, eta_next);
 
     if (F > rand())
     { return Reflection(reflect(L, n), 1.0); }
 
-    return Reflection(refraction(L, n, eta_prev, eta_next), reflectanceAt(next, lambdaUm));
+    return Reflection(refraction(L, n, eta_prev, eta_next), albedoAt(next, lambdaUm));
 }
 
 Reflection sampleReflection(vec3 L, vec3 N, float lambdaUm, Material previousMaterial, Material nextMaterial){

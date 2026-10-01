@@ -31,7 +31,7 @@ float air_reflectance[N_BINS]= {1,1,1,1,
                             1,1,1,1,
                             1,1,1,1};
 
-const Material airMaterial = Material(air_reflectance, 3, 0.f, 293.f, _PAD_0, vec3(4.8669e-4, 5.8546e-5, 0.0), _PAD_1, vec3(0.0042014, 0.017433, 1.0), _PAD_2);
+const Material airMaterial = Material(air_reflectance, 3, 0.f, 293.f, _PAD_0, vec3(4.8669e-4, 5.8546e-5, 0.0), 1, vec3(0.0042014, 0.017433, 1.0), _PAD_2);
 
 
 float Trace(Ray r) {
@@ -65,10 +65,10 @@ float Trace(Ray r) {
         }
         if (argmin_mesh < UINT_MAX){ // if the ray has hit a mesh
             if (argmin_mesh_type == 0 && materials[argmin_mesh].id == 0){ // the mesh is emissive
-                return planckPdfNm(cur_r.lambda, materials[argmin_mesh].T)*cur_r.throughput;
+                return materials[argmin_mesh].intensity*planckPdfNm(cur_r.lambda, materials[argmin_mesh].T)*cur_r.throughput;
             }
             else if (argmin_mesh_type == 1 && materials[spheres[argmin_mesh].material_id].id == 0){
-                return planckPdfNm(cur_r.lambda, materials[spheres[argmin_mesh].material_id].T)*cur_r.throughput;
+                return materials[argmin_mesh].intensity*planckPdfNm(cur_r.lambda, materials[spheres[argmin_mesh].material_id].T)*cur_r.throughput;
             }
             vec3 N = argmin_hp.normal;
             vec3 O = cur_r.o + cur_r.d*argmin_hp.t;
@@ -188,8 +188,7 @@ vec4 randomRayTracing(){
         Ray r = setWorldRay(rayDir);
         float intensity = Trace(r);
         vec3 xyz = cieXYZ(r.lambda);
-        vec3 rgb = xyzToSrgb(xyz);
-        sum_color += vec4(rgb,1.f);
+        sum_color += vec4(xyz*intensity,1.f);
     }
     return sum_color/RANDOM_SAMPLING_SIZE;
 }

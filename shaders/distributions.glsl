@@ -20,17 +20,18 @@ const float C2      = 1.438777e-2;          // hc/k  [m*K]
 float planckPdfNm(float lambdaUm, float T) {
     float lam = lambdaUm * 1e-6;
     float x   = C2 / (lam * T);
-    float em1 = (x < 1e-3) ? x * (1.0 + 0.5 * x) : exp(x) - 1.0;
+//    float em1 = (x < 1e-3) ? x * (1.0 + 0.5 * x) : exp(x) - 1.0;
+    float em1 = exp(x) - 1.0;
     float px  = (15.0 / (PI*PI*PI*PI)) * x*x*x / em1;
     return px * x / lambdaUm;
 }
 
-float reflectanceAt(Material m, float lambdaUm) {
+float albedoAt(Material m, float lambdaUm) {
     float t = clamp((lambdaUm - LAMBDA_MIN) / (LAMBDA_MAX - LAMBDA_MIN), 0.0, 1.0);
     float f = t * float(N_BINS - 1);
     int i0 = int(floor(f));
     int i1 = min(i0 + 1, N_BINS - 1);
-    return mix(m.reflectance[i0], m.reflectance[i1], f - float(i0));
+    return mix(m.albedo[i0], m.albedo[i1], f - float(i0));
 }
 
 float g(float l, float mu, float s1, float s2) {
