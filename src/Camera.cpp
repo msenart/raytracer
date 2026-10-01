@@ -3,7 +3,7 @@
 #include "Context.h"
 #include "Screen.h"
 
-Camera::Camera(float fov_v, float window_width, float window_height, float near_v, float far_v) : fov(fov_v), aspectRatio(window_width/window_height),nearPlane(near_v),farPlane(far_v){
+Camera::Camera(float window_width, float window_height, float speed, float fov_v, float near_v, float far_v) : speed(speed), fov(fov_v), aspectRatio(window_width/window_height),nearPlane(near_v),farPlane(far_v){
 lastX = 0; lastY = 0;justAfterQuittingUI = true;
 }
 
@@ -62,14 +62,19 @@ void Camera::processKeyboard(GLFWwindow* window, float deltaTime) {
     }
     float velocity = speed * deltaTime;
     glm::vec3 direction = normalize((center-position));
+    glm::vec3 flatDirection = normalize(((center-position) - up*glm::dot((center-position), up)));
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        {position += direction * velocity; is_moving = true;}
+        {position += flatDirection * velocity; is_moving = true;}
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        {position -= direction * velocity; is_moving = true;}
+        {position -= flatDirection * velocity; is_moving = true;}
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        {position -= glm::normalize(glm::cross(direction, up)) * velocity; is_moving = true;}
+        {position -= glm::normalize(glm::cross(flatDirection, up)) * velocity; is_moving = true;}
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        {position += glm::normalize(glm::cross(direction, up)) * velocity; is_moving = true;}
+        {position += glm::normalize(glm::cross(flatDirection, up)) * velocity; is_moving = true;}
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        {position += up * velocity; is_moving = true;}
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        {position -= up * velocity ; is_moving = true;}
     center = position + direction;
 
     if (is_moving) {

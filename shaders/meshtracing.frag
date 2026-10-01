@@ -31,7 +31,7 @@ float air_reflectance[N_BINS]= {1,1,1,1,
                             1,1,1,1,
                             1,1,1,1};
 
-const Material airMaterial = Material(air_reflectance, 3, 0.f, 293.f, _PAD_0, vec3(4.8669e-4, 5.8546e-5, 0.0), 1, vec3(0.0042014, 0.017433, 1.0), _PAD_2);
+const Material airMaterial = Material(air_reflectance, 3, 0.f, 293.f, 0, vec3(4.8669e-4, 5.8546e-5, 0.0), 1, vec3(0.0042014, 0.017433, 1.0), _PAD_2);
 
 
 float Trace(Ray r) {
@@ -65,10 +65,11 @@ float Trace(Ray r) {
         }
         if (argmin_mesh < UINT_MAX){ // if the ray has hit a mesh
             if (argmin_mesh_type == 0 && materials[argmin_mesh].id == 0){ // the mesh is emissive
-                return materials[argmin_mesh].intensity*planckPdfNm(cur_r.lambda, materials[argmin_mesh].T)*cur_r.throughput;
+                return materials[argmin_mesh].intensity*planckPdfUm(cur_r.lambda, materials[argmin_mesh].T)*cur_r.throughput;
             }
             else if (argmin_mesh_type == 1 && materials[spheres[argmin_mesh].material_id].id == 0){
-                return materials[argmin_mesh].intensity*planckPdfNm(cur_r.lambda, materials[spheres[argmin_mesh].material_id].T)*cur_r.throughput;
+                Material m = materials[spheres[argmin_mesh].material_id];
+                return m.intensity * planckPdfUm(cur_r.lambda, m.T) * cur_r.throughput;
             }
             vec3 N = argmin_hp.normal;
             vec3 O = cur_r.o + cur_r.d*argmin_hp.t;
@@ -90,11 +91,15 @@ float Trace(Ray r) {
             Reflection reflection = sampleReflection(cur_r.d, N, cur_r.lambda, previousMaterial, nextMaterial);
 
             float isReflection = -sign(dot(reflection.R,N)*dot(cur_r.d,N)); // 1 if reflection, -1 if refraction.
+            float side = dot(reflection.R, N) >= 0.0 ? 1.0 : -1.0;
+
+            // keeping the mesh_id in which we stay
             uint new_in_objtype_id = isReflection == 1.f ? cur_r.in_objtype_id :
             (isGoingOut ? UINT_MAX : argmin_mesh_type);
             uint new_in_obj_id = isReflection == 1.f ? cur_r.in_obj_id :
             (isGoingOut ? UINT_MAX : argmin_mesh);
-            cur_r = Ray(O + isReflection*2*eps*N,reflection.R,cur_r.throughput*reflection.coef, cur_r.lambda,new_in_objtype_id, new_in_obj_id);
+
+            cur_r = Ray(O + side*2*eps*N,reflection.R,cur_r.throughput*reflection.coef, cur_r.lambda,new_in_objtype_id, new_in_obj_id);
         }
         else { // if the ray has hit nothing
             return BACKGROUND_INTENSITY*cur_r.throughput;

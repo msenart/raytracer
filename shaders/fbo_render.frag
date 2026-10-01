@@ -21,4 +21,5 @@ void main()
     vec3 texCol = texture(renderTex, uvScreen).xyz;
     texCol = xyzToSrgb(texCol);
     fragColor = vec4(ACESFilm(texCol), 1.0);
+//    fragColor = vec4(texCol, 1.0);
 }

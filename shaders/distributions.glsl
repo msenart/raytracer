@@ -17,10 +17,10 @@ float sampleWLVisible(){
 
 const float C2      = 1.438777e-2;          // hc/k  [m*K]
 
-float planckPdfNm(float lambdaUm, float T) {
+float planckPdfUm(float lambdaUm, float T) {
     float lam = lambdaUm * 1e-6;
     float x   = C2 / (lam * T);
-//    float em1 = (x < 1e-3) ? x * (1.0 + 0.5 * x) : exp(x) - 1.0;
+//    float em1 = (x < eps) ? x * (1.0 + 0.5 * x) : exp(x) - 1.0;
     float em1 = exp(x) - 1.0;
     float px  = (15.0 / (PI*PI*PI*PI)) * x*x*x / em1;
     return px * x / lambdaUm;

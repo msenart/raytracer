@@ -190,49 +190,52 @@ void MeshHelpers::generatePlane(
     }
 }
 
-// void MeshHelpers::generateFromFile(const std::string& path, std::vector<Vertex>& vertices, std::vector<unsigned int>& indices) {
-//     std::cout << "Geometry::generateFromFile : loading " << path << std::endl;
-//
-//     Assimp::Importer importer;
-//     // Ajout de aiProcess_JoinIdenticalVertices pour aider meshopt
-//     const aiScene* scene = importer.ReadFile(path,
-//         aiProcess_Triangulate |
-//         aiProcess_JoinIdenticalVertices |
-//         aiProcess_CalcTangentSpace |
-//         aiProcess_GenSmoothNormals |
-//         aiProcess_FlipUVs); // Souvent nécessaire selon l'API (Vulkan/GL)
-//
-//     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-//         std::cerr << "Assimp error : " << importer.GetErrorString() << std::endl;
-//         return;
-//     }
-//
-//     aiMesh* mesh = scene->mMeshes[0];
-//     vertices.reserve(mesh->mNumVertices);
-//     indices.reserve(mesh->mNumFaces * 3);
-//
-//     for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
-//         Vertex vertex{};
-//         vertex.position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
-//
-//         if (mesh->HasNormals())
-//             vertex.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
-//
-//         if (mesh->HasTextureCoords(0))
-//             vertex.uv = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
-//
-//         if (mesh->HasTangentsAndBitangents())
-//             vertex.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z, 1.0f };
-//
-//         vertices.push_back(vertex);
-//     }
-//     for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
-//         aiFace face = mesh->mFaces[i];
-//         for (unsigned int j = 0; j < face.mNumIndices; j++)
-//             indices.push_back(face.mIndices[j]);
-//     }
-//     std::cout << "Geometry : " << vertices.size() << " vertices, " << indices.size() / 3 << " faces." << std::endl;
-// }
+void MeshHelpers::generateFromFile(const std::string& path, std::vector<Vertex>& vertices, std::vector<unsigned int>& indices) {
+    vertices.clear();
+    indices.clear();
+
+    std::cout << "Geometry::generateFromFile : loading " << path << std::endl;
+    Assimp::Importer importer;
+
+    const aiScene* scene = importer.ReadFile(path,
+        aiProcess_Triangulate |
+        aiProcess_JoinIdenticalVertices |
+        aiProcess_CalcTangentSpace |
+        aiProcess_GenSmoothNormals |
+        aiProcess_FlipUVs);
+
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        std::cerr << "Assimp error : " << importer.GetErrorString() << std::endl;
+        return;
+    }
+
+    unsigned int _test = scene->mNumMeshes;
+    aiMesh* mesh = scene->mMeshes[0];
+    vertices.reserve(mesh->mNumVertices);
+    indices.reserve(mesh->mNumFaces * 3);
+
+    for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+        Vertex vertex{};
+        vertex.position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
+
+        if (mesh->HasNormals())
+            vertex.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+
+        if (mesh->HasTextureCoords(0))
+            vertex.uv = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
+
+        if (mesh->HasTangentsAndBitangents())
+            vertex.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z, 1.0f };
+
+        vertices.push_back(vertex);
+    }
+    for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+        aiFace face = mesh->mFaces[i];
+        for (unsigned int j = 0; j < face.mNumIndices; j++)
+            indices.push_back(face.mIndices[j]);
+    }
+    std::cout << "Geometry : " << vertices.size() << " vertices, " << indices.size() / 3 << " faces." << std::endl;
+}
 
 
 

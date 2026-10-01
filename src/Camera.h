@@ -6,7 +6,7 @@ class Shader;
 
 class Camera {
 public:
-    Camera(float fov_v, float window_width, float window_height, float near_v, float far_v);
+    Camera(float window_width, float window_height, float speed, float fov_v, float near_v, float far_v);
 
     [[nodiscard]] glm::mat4 view() const;
     [[nodiscard]] glm::mat4 projection() const;

@@ -11,8 +11,13 @@ struct Reflection{
     float coef;
 };
 
-vec3 reflect(vec3 L, vec3 N){
-    return L - 2*dot(L,N)*N;
+vec3 refraction(vec3 L, vec3 N, float previous_eta, float next_eta){
+    vec3 correctedN = dot(L, N) < 0.0 ? N : -N;
+    float etai_over_etat = previous_eta/next_eta;
+    float cos_theta = min(dot(-L, correctedN),1.0f);
+    vec3 r_out_perp = etai_over_etat*(L + cos_theta*correctedN);
+    vec3 r_out_parallel = -sqrt(abs(1.0f - dot(r_out_perp,r_out_perp)))*correctedN;
+    return normalize(r_out_perp + r_out_parallel);
 }
 
 Reflection sampleLambertReflection(vec3 L, vec3 N, float lambdaUm, Material nextMaterial){
@@ -21,15 +26,6 @@ Reflection sampleLambertReflection(vec3 L, vec3 N, float lambdaUm, Material next
 
 Reflection sampleMetalReflection(vec3 L, vec3 N, float lambdaUm, Material nextMaterial){
     return Reflection(reflect(L, N) + randomUnitVector()*nextMaterial.metal_fuzz, albedoAt(nextMaterial, lambdaUm));
-}
-
-vec3 refraction(vec3 L, vec3 N, float previous_eta, float next_eta){
-    vec3 correctedN = dot(L, N) < 0.0 ? N : -N;
-    float etai_over_etat = previous_eta/next_eta;
-    float cos_theta = min(dot(-L, correctedN),1.0f);
-    vec3 r_out_perp = etai_over_etat*(L + cos_theta*correctedN);
-    vec3 r_out_parallel = -sqrt(abs(1.0f - dot(r_out_perp,r_out_perp)))*correctedN;
-    return normalize(r_out_perp + r_out_parallel);
 }
 
 float fresnelDielectric(float cosI, float n1, float n2){
@@ -44,12 +40,9 @@ float fresnelDielectric(float cosI, float n1, float n2){
 Reflection sampleGlassReflection(vec3 L, vec3 N, float lambdaUm, Material prev, Material next){
     vec3 n = dot(L, N) < 0.0 ? N : -N;
     float cosI = min(dot(-L, n), 1.0);
-//    float eta_prev = iorSellmeier(prev.B, prev.C, lambdaUm);
-//    float eta_next = iorSellmeier(next.B, next.C, lambdaUm);
-    float eta_prev = prev.eta_test;
-    float eta_next = next.eta_test;
+    float eta_prev = iorSellmeier(prev.B, prev.C, lambdaUm);
+    float eta_next = iorSellmeier(next.B, next.C, lambdaUm);
     float F = fresnelDielectric(cosI, eta_prev, eta_next);
-
     if (F > rand())
     { return Reflection(reflect(L, n), 1.0); }
 
