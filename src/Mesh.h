@@ -23,14 +23,17 @@ struct Material {
     float intensity = 0;
     glm::vec3 B;
     float eta_test = 1;
-    glm::vec3 C;
-    float _pad2 = 0;
+    glm::vec3 lam0;
+    float _pad0 = 0;
+    glm::vec3 Gam;
+    float _pad1 = 0;
 
     Material() :    id(MaterialType::Lambertian),
                     metal_fuzz(0.0f),
                     T(293),
                     B(1.0f),
-                    C(1.0f) {
+                    lam0(1.0f),
+                    Gam(0.0f){
         albedo.fill(1.f);
     }
 };

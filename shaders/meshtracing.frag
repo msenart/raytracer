@@ -31,7 +31,7 @@ float air_reflectance[N_BINS]= {1,1,1,1,
                             1,1,1,1,
                             1,1,1,1};
 
-const Material airMaterial = Material(air_reflectance, 3, 0.f, 293.f, 0, vec3(4.8669e-4, 5.8546e-5, 0.0), 1, vec3(0.0042014, 0.017433, 1.0), _PAD_2);
+const Material airMaterial = Material(air_reflectance, 3, 0.f, 293.f, 0, vec3(4.8669e-4, 5.8546e-5, 0.0), 1, vec3(0.0042014, 0.017433, 1.0), _PAD_0, vec3(0), _PAD_1);
 
 
 float Trace(Ray r) {

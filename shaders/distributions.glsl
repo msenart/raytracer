@@ -4,7 +4,21 @@
 #include "params.glsl"
 #include "random.glsl"
 #include "material.glsl"
+#include "complex_numbers.glsl"
 // all wavelengths are in µm.
+
+cx permittivity(float lam, vec3 B, vec3 lam0, vec3 Gam) {
+    cx e = cx(1.0, 0.0);
+    for (int i = 0; i < 3; i++) {
+        cx den = cx(lam*lam - lam0[i]*lam0[i], -Gam[i]*lam);
+        e = csum(e,cdiv(cx(B[i]*lam*lam,0.f), den));
+    }
+    return e;
+}
+
+cx complexIndex(float lam, vec3 B, vec3 lam0, vec3 Gam) {
+    return csqrt(permittivity(lam, B, lam0, Gam));
+}
 
 float iorSellmeier(vec3 B, vec3 C, float lambdaUm) {
     float l2 = lambdaUm * lambdaUm;
@@ -15,7 +29,7 @@ float sampleWLVisible(){
     return LAMBDA_MIN + rand() * (LAMBDA_MAX - LAMBDA_MIN);
 }
 
-const float C2      = 1.438777e-2;          // hc/k  [m*K]
+const float C2 = 1.438777e-2;          // hc/k  [m*K]
 
 float planckPdfUm(float lambdaUm, float T) {
     float lam = lambdaUm * 1e-6;

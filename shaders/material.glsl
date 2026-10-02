@@ -9,8 +9,10 @@ struct Material{
     float intensity;
     vec3 B;
     float eta_test;
-    vec3 C;
-    float _pad2;
+    vec3 lam0;
+    float _pad0;
+    vec3 Gam;
+    float _pad1;
 };
 
 #endif
