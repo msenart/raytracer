@@ -66,12 +66,12 @@ void start() {
     mesh->transform.rotation = glm::vec3(-glm::radians(53.0f), 0.0f, 0.0f);
     mesh->material.id = MaterialType::Glass;
     mesh->material.albedo.fill(1.f);
-    mesh->material.B = glm::vec3(4.3356, 0.3306, 0.0);
-    mesh->material.lam0 = glm::vec3(0.1750, 0.1060, 100.0);
-    mesh->material.Gam = glm::vec3(0.0f);
-    // mesh->material.B = glm::vec3(92.87, 0.233, 3.524);;
-    // mesh->material.lam0 = glm::vec3(1.7167, 0.7597, 0.3378);
-    // mesh->material.Gam = glm::vec3(0.0, 0.1964, 0.1752);
+    // mesh->material.B = glm::vec3(4.3356, 0.3306, 0.0);
+    // mesh->material.lam0 = glm::vec3(0.1750, 0.1060, 100.0);
+    // mesh->material.Gam = glm::vec3(0.0f);
+    mesh->material.B = glm::vec3(92.87, 0.233, 3.524);;
+    mesh->material.lam0 = glm::vec3(1.7167, 0.7597, 0.3378);
+    mesh->material.Gam = glm::vec3(0.0, 0.1964, 0.1752);
     mesh->material.metal_fuzz = 0.3f;
     mesh->material.eta_test = 1.5f;
     manager.addMesh(mesh);

@@ -104,6 +104,13 @@ float Trace(Ray r) {
         else { // if the ray has hit nothing
             return BACKGROUND_INTENSITY*cur_r.throughput;
         }
+
+        // russian roulette
+        if (cur_r.throughput < 0.05f){
+            if (rand() > 0.5f)
+            { return 0; }
+            cur_r.throughput/=0.5f;
+        }
     }
     return BACKGROUND_INTENSITY*cur_r.throughput; // or background color
 }
