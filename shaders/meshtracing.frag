@@ -26,13 +26,6 @@ layout(std430, binding = 3) readonly buffer MaterialBuffer {
 };
 
 // Core raytracing mechanic
-float air_reflectance[N_BINS]= {1,1,1,1,
-                            1,1,1,1,
-                            1,1,1,1,
-                            1,1,1,1};
-
-const Material airMaterial = Material(air_reflectance, 3, 0.f, 293.f, 0, vec3(4.8669e-4, 5.8546e-5, 0.0), 1, vec3(0.0042014, 0.017433, 1.0), _PAD_0, vec3(0), _PAD_1);
-
 
 float Trace(Ray r) {
     float min_distance = FLOAT_MAX;
@@ -88,7 +81,7 @@ float Trace(Ray r) {
                 nextMaterial = isGoingOut ? airMaterial : materials[spheres[argmin_mesh].material_id];
             }
 
-            Reflection reflection = sampleReflection(cur_r.d, N, cur_r.lambda, previousMaterial, nextMaterial);
+            Reflection reflection = sampleReflection(cur_r.d, N,argmin_hp.t ,cur_r.lambda, previousMaterial, nextMaterial);
 
             float isReflection = -sign(dot(reflection.R,N)*dot(cur_r.d,N)); // 1 if reflection, -1 if refraction.
             float side = dot(reflection.R, N) >= 0.0 ? 1.0 : -1.0;

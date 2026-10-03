@@ -5,19 +5,17 @@
 #include "random.glsl"
 #include "material.glsl"
 #include "complex_numbers.glsl"
+
 // all wavelengths are in µm.
 
-cx permittivity(float lam, vec3 B, vec3 lam0, vec3 Gam) {
-    cx e = cx(1.0, 0.0);
-    for (int i = 0; i < 3; i++) {
-        cx den = cx(lam*lam - lam0[i]*lam0[i], -Gam[i]*lam);
-        e = csum(e,cdiv(cx(B[i]*lam*lam,0.f), den));
-    }
-    return e;
-}
-
-cx complexIndex(float lam, vec3 B, vec3 lam0, vec3 Gam) {
-    return csqrt(permittivity(lam, B, lam0, Gam));
+cx complexIndex(float lambdaUm, float[N_BINS] n, float[N_BINS] k) {
+    float t = clamp((lambdaUm - LAMBDA_MIN) / (LAMBDA_MAX - LAMBDA_MIN), 0.0, 1.0);
+    float f = t * float(N_BINS - 1);
+    int i0 = int(floor(f));
+    int i1 = min(i0 + 1, N_BINS - 1);
+    float eval_n = mix(n[i0], n[i1], f - float(i0));
+    float eval_k = mix(k[i0], k[i1], f - float(i0));
+    return cx(eval_n,eval_k);
 }
 
 float iorSellmeier(vec3 B, vec3 C, float lambdaUm) {

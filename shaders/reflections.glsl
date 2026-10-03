@@ -53,30 +53,32 @@ float fresnelDielectric(float cosI, cx n1, cx n2){
     return 0.5 * (norm2(rs) + norm2(rp));
 }
 
-Reflection sampleGlassReflection(vec3 L, vec3 N, float lambdaUm, Material prev, Material next){
+Reflection sampleGlassReflection(vec3 L, vec3 N, float t, float lambdaUm, Material prev, Material next){
+    // evaluate reflection and refraction
     vec3 n = dot(L, N) < 0.0 ? N : -N;
     float cosI = min(dot(-L, n), 1.0);
-    cx eta_prev = complexIndex(lambdaUm, prev.B, prev.lam0, prev.Gam);
-    cx eta_next = complexIndex(lambdaUm, next.B, next.lam0, next.Gam);
+    cx eta_prev = complexIndex(lambdaUm, prev.n, prev.k);
+    cx eta_next = complexIndex(lambdaUm, next.n, next.k);
     float F = fresnelDielectric(cosI, eta_prev, eta_next);
     if (F > rand())
     { return Reflection(reflect(L, n), 1.0); }
-    else if (abs(eta_next.b) > 0.001){ // if the ray hasn't been reflected and k >> 0, then the ray has been absorbed.
+    else if (abs(eta_next.b) > 0.1){ // if the ray hasn't been reflected and k >> 0, then the ray has been absorbed.
         return Reflection(reflect(L, n), 0.0);
     }
-
     float eta   = eta_prev.a / eta_next.a;
     float sin2T = eta * eta * (1.0 - cosI * cosI);
     if (sin2T >= 1.0) { return Reflection(reflect(L, n), 1.0); }
 
-    return Reflection(refraction(L, n, cosI, eta, sin2T), albedoAt(next, lambdaUm));
+    // evaluate intensity fall over a long distance with beer-lambert
+    float distance_attenuation = exp(-(4*PI*eta_prev.b/lambdaUm)*t*10E2);
+
+    return Reflection(refraction(L, n, cosI, eta, sin2T), distance_attenuation);
 }
 
-Reflection sampleReflection(vec3 L, vec3 N, float lambdaUm, Material previousMaterial, Material nextMaterial){
+Reflection sampleReflection(vec3 L, vec3 N, float t, float lambdaUm, Material previousMaterial, Material nextMaterial){
     if (nextMaterial.id == 1) {return sampleLambertReflection(L,N, lambdaUm, nextMaterial);}
     if (nextMaterial.id == 2) {return sampleMetalReflection(L,N, lambdaUm, nextMaterial);}
-    if (nextMaterial.id == 3) {return sampleGlassReflection(L,N, lambdaUm, previousMaterial ,nextMaterial);}
-//    if (nextMaterial.id == 4)
+    if (nextMaterial.id == 3) {return sampleGlassReflection(L,N, t, lambdaUm, previousMaterial ,nextMaterial);}
     else {return Reflection(vec3(0), 0);}
 }
 

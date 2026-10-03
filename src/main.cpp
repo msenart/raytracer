@@ -52,9 +52,6 @@ void start() {
     mesh->material.id = MaterialType::Light;
     mesh->material.intensity = 15.f;
     mesh->material.albedo.fill(1.f);
-    mesh->material.B = glm::vec3(4.8669e-4, 5.8546e-5, 0.0);
-    mesh->material.lam0 = glm::vec3(0.0042014, 0.017433, 100.0);
-    mesh->material.Gam = glm::vec3(0.0f);
     mesh->material.T = 5000.f;
     manager.addMesh(mesh);
 
@@ -66,14 +63,9 @@ void start() {
     mesh->transform.rotation = glm::vec3(-glm::radians(53.0f), 0.0f, 0.0f);
     mesh->material.id = MaterialType::Glass;
     mesh->material.albedo.fill(1.f);
-    // mesh->material.B = glm::vec3(4.3356, 0.3306, 0.0);
-    // mesh->material.lam0 = glm::vec3(0.1750, 0.1060, 100.0);
-    // mesh->material.Gam = glm::vec3(0.0f);
-    mesh->material.B = glm::vec3(92.87, 0.233, 3.524);;
-    mesh->material.lam0 = glm::vec3(1.7167, 0.7597, 0.3378);
-    mesh->material.Gam = glm::vec3(0.0, 0.1964, 0.1752);
+    mesh->material.n = N_ALEXANDRITE;
+    mesh->material.k = K_ALEXANDRITE;
     mesh->material.metal_fuzz = 0.3f;
-    mesh->material.eta_test = 1.5f;
     manager.addMesh(mesh);
 
     // sphere = std::make_shared<Sphere>(glm::vec3(0),0.8f);
@@ -92,10 +84,7 @@ void start() {
     sphere = std::make_shared<Sphere>(glm::vec3(0.0f, -1001.0f, -2.5f), 1000.f);
     sphere->material.id = MaterialType::Lambertian;
     sphere->material.albedo.fill(1.f);
-    sphere->material.B = glm::vec3(4.8669e-4, 5.8546e-5, 0.0);
-    sphere->material.lam0 = glm::vec3(0.0042014, 0.017433, 100.0);
     sphere->material.metal_fuzz = 0.3f;
-    sphere->material.eta_test = 1.5f;
     manager.addSphere(sphere);
 
     manager.buildSSBOs();
