@@ -3,6 +3,8 @@
 
 #define N_BINS 16
 
+
+// HYPERPARAMETERS (you can modify them as you want.)
 const uint MAX_ITER = 200;
 const float MAX_DISTANCE = 2000.f;
 const float BACKGROUND_INTENSITY = 1.f;
@@ -12,6 +14,9 @@ const uint MULTISAMPLING_SIZE = 4;
 const uint RANDOM_SAMPLING_SIZE = 1;
 const float LAMBDA_MIN = .4f;
 const float LAMBDA_MAX = .8f;
+const float ATTENUATION_COEF = 10E-2;
+
+// CONSTANTS (you shall not modify them.)
 
 const uint UINT_MAX = 0xFFFFFFFFu;
 const float FLOAT_MAX = 1e30;

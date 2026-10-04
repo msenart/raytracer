@@ -70,7 +70,7 @@ Reflection sampleGlassReflection(vec3 L, vec3 N, float t, float lambdaUm, Materi
     if (sin2T >= 1.0) { return Reflection(reflect(L, n), 1.0); }
 
     // evaluate intensity fall over a long distance with beer-lambert
-    float distance_attenuation = exp(-(4*PI*eta_prev.b/lambdaUm)*t*10E2);
+    float distance_attenuation = exp(-(4*PI*eta_prev.b/(lambdaUm*10E-6))*t*ATTENUATION_COEF);
 
     return Reflection(refraction(L, n, cosI, eta, sin2T), distance_attenuation);
 }
