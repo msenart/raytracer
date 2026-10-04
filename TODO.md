@@ -15,9 +15,9 @@
 - [X] Specular term for glass using the original Fresnel equation
 - [X] Introduce wavelength and refraction index/reflection index
 - [X] Investigate why the scene is always so dark.
-- [ ] Add the dependency of transmittance with depth and check whether there is loss of throughput when there is reflection inside the material.
+- [X] Add the dependency of transmittance with depth and check whether there is loss of throughput when there is reflection inside the material.
 - [X] Add complex refraction index for metals if possible.
-- [ ] Using GGX to estimate the specular term on top of Lambertian surfaces.
 - [ ] Implement Disney diffuse and GGX specular on top of it.
+- [ ] Migrate the pathtracer to compute shader.
 - [ ] Implement acceleration structures on rays.
 - [ ] Implement acceleration structures on meshes.
