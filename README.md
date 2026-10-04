@@ -37,8 +37,8 @@ The `CMakeLists.txt` automatically downloads all the required dependencies and c
 
 ```bash
 # 1. Clone the repository
-git clone <repository-url>
-cd <repository-folder>
+git clone https://github.com/msenart/raytracer
+cd raytracer
 
 # 2. Configure (downloads the dependencies)
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -51,10 +51,10 @@ cmake --build build --config Release -j
 
 ```bash
 # Linux / macOS
-./build/<executable-name>
+./build/raytracer
 
 # Windows
-.\build\Release\<executable-name>.exe
+.\build\Release\raytracer.exe
 ```
 
 Run the executable from the root of the repository so that shaders and assets can be found.
