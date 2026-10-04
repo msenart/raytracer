@@ -1,11 +1,10 @@
 #pragma once
 
-#include <utility>
-
 #include "OpenGLIncludes.h"
-#include "Shader.h"
 #include "MeshHelpers.h"
 #include "Transform.h"
+#include <array>
+#include "Parameters.h"
 
 enum struct MaterialType : unsigned int {
     Light = 0,
@@ -15,20 +14,18 @@ enum struct MaterialType : unsigned int {
 };
 
 struct Material {
-    glm::vec4 color;
+    std::array<float, 16> albedo{};
     MaterialType id;
-    float metal_fuzz;
-    float eta;
-    float _pad0;
+    float metal_fuzz = 0.f;
+    float T = 293.f;
+    float intensity = 0;
+    std::array<float, 16> n{};
+    std::array<float, 16> k{};
 
-    Material() :
-    color(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)),
-    id(MaterialType::Lambertian),
-    metal_fuzz(0.0f),
-    eta(1.0f),
-    _pad0(0)
-    {
-
+    Material() : id(MaterialType::Lambertian){
+        albedo.fill(1.f);
+        n.fill(1.f);
+        k.fill(0.f);
     }
 };
 

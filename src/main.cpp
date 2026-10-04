@@ -26,7 +26,7 @@ void start() {
     // make the cursor disappear on focusing the window
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     Context ctx = {
-        .camera = {glm::radians(90.f),(float) WINDOW_WIDTH,(float) WINDOW_HEIGHT,1,100},
+        .camera = {(float) WINDOW_WIDTH,(float) WINDOW_HEIGHT, 1.f,glm::radians(70.f),1,100},
         .screen = {}
     };
     context = std::make_shared<Context>(ctx);
@@ -48,49 +48,42 @@ void start() {
 
     MeshHelpers::generateCube(vertices, indices);
     mesh = std::make_shared<Mesh>(vertices, indices);
-    mesh->transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
+    mesh->transform.position = glm::vec3(0.0f, 2.0f, 0.0f);
     mesh->material.id = MaterialType::Light;
-    mesh->material.color = glm::vec4(1.0f);
-    mesh->material.eta = 1.5f;
+    mesh->material.intensity = 15.f;
+    mesh->material.albedo.fill(1.f);
+    mesh->material.T = 5000.f;
     manager.addMesh(mesh);
-    //
-    // MeshHelpers::generateSphere(vertices, indices);
-    // mesh = std::make_shared<Mesh>(vertices, indices);
-    // mesh->transform.position = glm::vec3(2.5f, 0.0f, 0.0f);
-    // mesh->material.id = MaterialType::Glass;
-    // mesh->material.color = glm::vec4(1.f);
-    // mesh->material.eta = 1.5f;
-    // manager.addMesh(mesh);
-    //
-    // MeshHelpers::generateSphere(vertices, indices);
-    // mesh = std::make_shared<Mesh>(vertices, indices);
-    // mesh->transform.position = glm::vec3(-2.5f, 0.0f, 0.0f);
-    // mesh->material.id = MaterialType::Glass;
-    // mesh->material.color = glm::vec4(1.f);
-    // mesh->material.eta = 1.5f;
-    // mesh->material.metal_fuzz = 0.3f;
-    // manager.addMesh(mesh);
 
     std::shared_ptr<Sphere> sphere;
 
-    sphere = std::make_shared<Sphere>(glm::vec3(0.0f, 0.01f, 2.5f), 1.f);
-    sphere->material.id = MaterialType::Metallic;
-    sphere->material.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
-    sphere->material.eta = 1.5f;
-    sphere->material.metal_fuzz = 0.3f;
-    manager.addSphere(sphere);
+    MeshHelpers::generateFromFile("../assets/diamond.fbx", vertices, indices);
+    mesh = std::make_shared<Mesh>(vertices, indices);
+    mesh->transform.position = glm::vec3(0.0f, -0.35f, 0.0f);
+    mesh->transform.rotation = glm::vec3(-glm::radians(53.0f), 0.0f, 0.0f);
+    mesh->material.id = MaterialType::Glass;
+    mesh->material.albedo.fill(1.f);
+    mesh->material.n = N_ALEXANDRITE;
+    mesh->material.k = K_ALEXANDRITE;
+    mesh->material.metal_fuzz = 0.3f;
+    manager.addMesh(mesh);
 
-    sphere = std::make_shared<Sphere>(glm::vec3(0.0f, 0.01f, -2.5f), 1.f);
-    sphere->material.id = MaterialType::Glass;
-    sphere->material.color = glm::vec4(1.f, 1.f, 1.f, 1.f);
-    sphere->material.eta = 1.5f;
-    sphere->material.metal_fuzz = 0.3f;
-    manager.addSphere(sphere);
-
+    // sphere = std::make_shared<Sphere>(glm::vec3(0),0.8f);
+    // sphere->material.id = MaterialType::Glass;
+    // sphere->material.albedo.fill(1.f);
+    // // mesh->material.B = glm::vec3(4.3356, 0.3306, 0.0);
+    // // mesh->material.lam0 = glm::vec3(0.1750, 0.1060, 100.0);
+    // // mesh->material.Gam = glm::vec3(0.0f);
+    // sphere->material.B = glm::vec3(92.87, 0.233, 3.524);;
+    // sphere->material.lam0 = glm::vec3(1.7167, 0.7597, 0.3378);
+    // sphere->material.Gam = glm::vec3(0.0, 0.1964, 0.1752);
+    // sphere->material.metal_fuzz = 0.3f;
+    // sphere->material.eta_test = 1.5f;
+    // manager.addSphere(sphere);
+    //
     sphere = std::make_shared<Sphere>(glm::vec3(0.0f, -1001.0f, -2.5f), 1000.f);
     sphere->material.id = MaterialType::Lambertian;
-    sphere->material.color = glm::vec4(1.f);
-    sphere->material.eta = 1.5f;
+    sphere->material.albedo.fill(1.f);
     sphere->material.metal_fuzz = 0.3f;
     manager.addSphere(sphere);
 

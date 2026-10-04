@@ -3,11 +3,23 @@
 
 #include "params.glsl"
 #include "random.glsl"
+#include "material.glsl"
+#include "complex_numbers.glsl"
 
 // all wavelengths are in µm.
 
-float iorSellmeier(vec3 B, vec3 C, float l) {
-    float l2 = l * l;
+cx complexIndex(float lambdaUm, float[N_BINS] n, float[N_BINS] k) {
+    float t = clamp((lambdaUm - LAMBDA_MIN) / (LAMBDA_MAX - LAMBDA_MIN), 0.0, 1.0);
+    float f = t * float(N_BINS - 1);
+    int i0 = int(floor(f));
+    int i1 = min(i0 + 1, N_BINS - 1);
+    float eval_n = mix(n[i0], n[i1], f - float(i0));
+    float eval_k = mix(k[i0], k[i1], f - float(i0));
+    return cx(eval_n,eval_k);
+}
+
+float iorSellmeier(vec3 B, vec3 C, float lambdaUm) {
+    float l2 = lambdaUm * lambdaUm;
     return sqrt(1.0 + dot(B, l2 / (vec3(l2) - C)));
 }
 
@@ -15,25 +27,23 @@ float sampleWLVisible(){
     return LAMBDA_MIN + rand() * (LAMBDA_MAX - LAMBDA_MIN);
 }
 
-const float PI      = 3.14159265359;
-const float C2      = 1.438777e-2;          // hc/k  [m*K]
+const float C2 = 1.438777e-2;          // hc/k  [m*K]
 
-float planckPdfNm(float lambdaUm, float T) {
+float planckPdfUm(float lambdaUm, float T) {
     float lam = lambdaUm * 1e-6;
     float x   = C2 / (lam * T);
-    float em1 = (x < 1e-3) ? x * (1.0 + 0.5 * x) : exp(x) - 1.0;
+//    float em1 = (x < eps) ? x * (1.0 + 0.5 * x) : exp(x) - 1.0;
+    float em1 = exp(x) - 1.0;
     float px  = (15.0 / (PI*PI*PI*PI)) * x*x*x / em1;
     return px * x / lambdaUm;
 }
 
-#define N_BINS 16
-
-float reflectanceAt(Material m, float lambdaUm) {
+float albedoAt(Material m, float lambdaUm) {
     float t = clamp((lambdaUm - LAMBDA_MIN) / (LAMBDA_MAX - LAMBDA_MIN), 0.0, 1.0);
     float f = t * float(N_BINS - 1);
     int i0 = int(floor(f));
     int i1 = min(i0 + 1, N_BINS - 1);
-    return mix(m.reflectance[i0], m.reflectance[i1], f - float(i0));
+    return mix(m.albedo[i0], m.albedo[i1], f - float(i0));
 }
 
 float g(float l, float mu, float s1, float s2) {

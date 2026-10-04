@@ -7,6 +7,8 @@
 #include "reflections.glsl"
 #include "triangleEQ.glsl"
 #include "vertices.glsl"
+#include "random.glsl"
+#include "distributions.glsl"
 
 uniform sampler2D readTex;
 
@@ -24,9 +26,8 @@ layout(std430, binding = 3) readonly buffer MaterialBuffer {
 };
 
 // Core raytracing mechanic
-const Material airMaterial = Material(vec4(1.0), 2u, 0.0, 1.0, 0.0);
 
-vec4 Trace(Ray r) {
+float Trace(Ray r) {
     float min_distance = FLOAT_MAX;
     uint argmin_mesh_type = UINT_MAX;
     uint argmin_mesh = UINT_MAX;
@@ -57,10 +58,11 @@ vec4 Trace(Ray r) {
         }
         if (argmin_mesh < UINT_MAX){ // if the ray has hit a mesh
             if (argmin_mesh_type == 0 && materials[argmin_mesh].id == 0){ // the mesh is emissive
-                return materials[argmin_mesh].color*cur_r.throughput;
+                return materials[argmin_mesh].intensity*planckPdfUm(cur_r.lambda, materials[argmin_mesh].T)*cur_r.throughput;
             }
             else if (argmin_mesh_type == 1 && materials[spheres[argmin_mesh].material_id].id == 0){
-                return materials[spheres[argmin_mesh].material_id].color*cur_r.throughput;
+                Material m = materials[spheres[argmin_mesh].material_id];
+                return m.intensity * planckPdfUm(cur_r.lambda, m.T) * cur_r.throughput;
             }
             vec3 N = argmin_hp.normal;
             vec3 O = cur_r.o + cur_r.d*argmin_hp.t;
@@ -79,20 +81,31 @@ vec4 Trace(Ray r) {
                 nextMaterial = isGoingOut ? airMaterial : materials[spheres[argmin_mesh].material_id];
             }
 
-            Reflection reflection = sampleReflection(cur_r.d, N, previousMaterial, nextMaterial);
+            Reflection reflection = sampleReflection(cur_r.d, N,argmin_hp.t ,cur_r.lambda, previousMaterial, nextMaterial);
 
             float isReflection = -sign(dot(reflection.R,N)*dot(cur_r.d,N)); // 1 if reflection, -1 if refraction.
+            float side = dot(reflection.R, N) >= 0.0 ? 1.0 : -1.0;
+
+            // keeping the mesh_id in which we stay
             uint new_in_objtype_id = isReflection == 1.f ? cur_r.in_objtype_id :
             (isGoingOut ? UINT_MAX : argmin_mesh_type);
             uint new_in_obj_id = isReflection == 1.f ? cur_r.in_obj_id :
             (isGoingOut ? UINT_MAX : argmin_mesh);
-            cur_r = Ray(O + isReflection*2*eps*N,reflection.R,cur_r.throughput*reflection.coef, new_in_objtype_id, new_in_obj_id);
+
+            cur_r = Ray(O + side*2*eps*N,reflection.R,cur_r.throughput*reflection.coef, cur_r.lambda,new_in_objtype_id, new_in_obj_id);
         }
         else { // if the ray has hit nothing
-            return BACKGROUND_COLOR*cur_r.throughput;
+            return BACKGROUND_INTENSITY*cur_r.throughput;
+        }
+
+        // russian roulette
+        if (cur_r.throughput < 0.05f){
+            if (rand() > 0.5f)
+            { return 0; }
+            cur_r.throughput/=0.5f;
         }
     }
-    return BACKGROUND_COLOR*cur_r.throughput; // or background color
+    return BACKGROUND_INTENSITY*cur_r.throughput; // or background color
 }
 
 // No blurring
@@ -100,7 +113,7 @@ vec4 Trace(Ray r) {
 Ray setWorldRay(vec3 d){
     mat3 camToWorld = mat3(inverse(camera.view));
     vec3 worldRayDir = normalize(camToWorld * d);
-    return Ray(camera.position, worldRayDir, vec4(1, 1, 1, 1), UINT_MAX, UINT_MAX);
+    return Ray(camera.position, worldRayDir, 1, sampleWLVisible(), UINT_MAX, UINT_MAX);
 }
 
 // Focus blurring
@@ -116,7 +129,7 @@ Ray setWorldRayFocusBlur(vec3 d){
     mat3 camToWorld = mat3(inverse(camera.view));
     vec3 worldOrigin = camera.position + camToWorld * newOrigin;
     vec3 worldDirection = normalize(camToWorld * newDir);
-    return Ray(worldOrigin, worldDirection, vec4(1, 1, 1, 1), UINT_MAX, UINT_MAX);
+    return Ray(worldOrigin, worldDirection,1, sampleWLVisible(), UINT_MAX, UINT_MAX);
 }
 
 // Basic raytracing
@@ -127,8 +140,11 @@ vec4 basicRayTracing(){
     float z = 1.0 / tan(camera.fov * 0.5);
     vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
     rayDir = normalize(mat3(inverse(camera.view)) * rayDir);
-    Ray r = Ray(camera.position, rayDir, vec4(1, 1, 1, 1), UINT_MAX, UINT_MAX);
-    return Trace(r);
+    Ray r = Ray(camera.position, rayDir, 1, sampleWLVisible(), UINT_MAX, UINT_MAX);
+    float intensity = Trace(r);
+    vec3 xyz = cieXYZ(r.lambda);
+    vec3 rgb = xyzToSrgb(xyz);
+    return vec4(rgb,1.f);
 }
 
 // Multisampling raytracing
@@ -155,8 +171,11 @@ vec4 multiSamplingRayTracing(){
         float z = 1.0 / tan(camera.fov * 0.5);
         vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
         rayDir = normalize(mat3(inverse(camera.view)) * rayDir);
-        Ray r = { camera.position, rayDir, vec4(1, 1, 1, 1), UINT_MAX, UINT_MAX};
-        sum_color += Trace(r);
+        Ray r = Ray(camera.position, rayDir, 1, sampleWLVisible(), UINT_MAX, UINT_MAX);
+        float intensity = Trace(r);
+        vec3 xyz = cieXYZ(r.lambda);
+        vec3 rgb = xyzToSrgb(xyz);
+        sum_color += vec4(rgb,1.f);
     }
 
     return sum_color/(MULTISAMPLING_SIZE*MULTISAMPLING_SIZE);
@@ -172,7 +191,9 @@ vec4 randomRayTracing(){
         float z = 1.0 / tan(camera.fov * 0.5);
         vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
         Ray r = setWorldRay(rayDir);
-        sum_color+=Trace(r);
+        float intensity = Trace(r);
+        vec3 xyz = cieXYZ(r.lambda);
+        sum_color += vec4(xyz*intensity,1.f);
     }
     return sum_color/RANDOM_SAMPLING_SIZE;
 }

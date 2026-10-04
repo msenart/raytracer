@@ -1,5 +1,4 @@
 #include "Mesh.h"
-
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices): vertices(std::move(vertices)), indices(std::move(indices)){}
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices, Material material): vertices(std::move(vertices)), indices(std::move(indices)), material(material) {}
