@@ -1,5 +1,7 @@
 # Physically-Based Spectral Path Tracer
 
+![Diamond rendered with the spectral renderer](assets/image.png)
+
 Have you ever wanted to see your favorite objects turned into your favorite materials? (For me, it's diamond.) This physically-based, real-time spectral path tracer does it for you. Wavelength is taken into account in both the intensity and the direction of each ray. Everything is written in OpenGL 4.5.
 
 For now, a powerful graphics card is required to run the project, as there is no acceleration structure yet. The goal of this engine is to render any object in any material: you only need to know the complex refractive index $\tilde{n} = n + jk$ (i.e. the pair $(n, k)$) and the renderer does the rest.
