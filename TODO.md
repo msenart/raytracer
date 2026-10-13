@@ -3,7 +3,7 @@
 - [X] Improved shader compiler using includes
 - [X] Introducing raytracing for SDF Spheres
 - [X] Implement fbo double buffer
-- [X] raytracing Multisampling
+- [X] raytracing multisampling
 - [X] raytracing random sampling
 - [X] Lambert reflection
 - [X] Metal reflection
@@ -18,6 +18,6 @@
 - [X] Add the dependency of transmittance with depth and check whether there is loss of throughput when there is reflection inside the material.
 - [X] Add complex refraction index for metals if possible.
 - [ ] Implement Disney diffuse and GGX specular on top of it.
-- [ ] Migrate the pathtracer to compute shader.
+- [X] Migrate the pathtracer to compute shader.
 - [ ] Implement acceleration structures on rays.
 - [ ] Implement acceleration structures on meshes.

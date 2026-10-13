@@ -32,29 +32,23 @@ Screen::Screen() {
     vao->unbind();
     sp = std::make_shared<Shader>(Shader::fromFiles("test.vert","meshtracing.frag"));
     sp2 = std::make_shared<Shader>(Shader::fromFiles("fbo_render.vert","fbo_render.frag"));
+    cs = std::make_shared<Shader>(Shader::computeFile("meshtracing.comp"));
 
-    fbo1 = new FBO();
-    fbo2 = new FBO();
-
-    fbo1->bind();
-    glGenTextures(1, &fbo1_tex);
-    glBindTexture(GL_TEXTURE_2D, fbo1_tex);
+    glGenTextures(1, &tex1);
+    glBindTexture(GL_TEXTURE_2D, tex1);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
-    fbo1->attachTexture2D(fbo1_tex);
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cerr<<"ERROR::FRAMEBUFFER:: Framebuffer is not complete"<<std::endl;
     }
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    fbo2->bind();
-    glGenTextures(1, &fbo2_tex);
-    glBindTexture(GL_TEXTURE_2D, fbo2_tex);
+    glGenTextures(1, &tex2);
+    glBindTexture(GL_TEXTURE_2D, tex2);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
-    fbo2->attachTexture2D(fbo2_tex);
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cerr<<"ERROR::FRAMEBUFFER:: Framebuffer is not complete"<<std::endl;
     }
@@ -63,37 +57,37 @@ Screen::Screen() {
 }
 
 void Screen::draw() {
-    sp->bind();
-    sp->set("frame",frame);
-    sp->set("windowSize", glm::vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
+    cs->bind();
+    cs->set("frame",frame);
+    cs->set("windowSize", glm::vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
     vao->bind();
     // choosing which fbo to render
-    auto read_fbo = isFbo1 ? fbo1 : fbo2;
-    auto write_fbo = isFbo1 ? fbo2 : fbo1;
-    auto read_tex = isFbo1 ? fbo1_tex : fbo2_tex;
-    auto write_tex = isFbo1 ? fbo2_tex : fbo1_tex;
+    auto read_tex = isTex1 ? tex1 : tex2;
+    auto write_tex = isTex1 ? tex2 : tex1;
 
+    // attaching reading buffer
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D,read_tex);
-    sp->set("readTex",0);
+    cs->set("readTex",0);
 
-    write_fbo->bind();
-    isFbo1 = !isFbo1;
+    isTex1 = !isTex1;
 
     // bind camera variables to the shader
     auto context = static_cast<Context*>(glfwGetWindowUserPointer(window));
-    context->camera.setShaderValues(sp);
+    context->camera.setShaderValues(cs);
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDisable(GL_CULL_FACE);
-    glDrawElements(GL_TRIANGLES, 6  , GL_UNSIGNED_INT, nullptr);
+    // attaching writing buffer to the compute shader
+    glBindImageTexture(0, write_tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glDispatchCompute((WINDOW_WIDTH + 7) / 8, (WINDOW_HEIGHT + 7) / 8, 1);
+    glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+
     FBO::unbind();
-    sp->unbind();
+    cs->unbind();
 
     sp2->bind();
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D,write_tex);
-    sp->set("renderTex",0);
+    sp2->set("renderTex",0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     glDrawElements(GL_TRIANGLES, 6  , GL_UNSIGNED_INT, nullptr);
@@ -102,16 +96,17 @@ void Screen::draw() {
 }
 
 void Screen::resetTextures() {
-    glBindTexture(GL_TEXTURE_2D, fbo1_tex);
+    glBindTexture(GL_TEXTURE_2D, tex1);
     glClear(GL_COLOR_BUFFER_BIT);
-    glBindTexture(GL_TEXTURE_2D, fbo1_tex);
+    glBindTexture(GL_TEXTURE_2D, tex1);
     glClear(GL_COLOR_BUFFER_BIT);
     frame = 1;
 }
 
-void Screen::windowResizeCallback(GLFWwindow *window, int width, int height) const {
-    glBindTexture(GL_TEXTURE_2D, fbo1_tex);
+void Screen::windowResizeCallback(GLFWwindow *window_v, int width, int height) {
+    glBindTexture(GL_TEXTURE_2D, tex1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glBindTexture(GL_TEXTURE_2D, fbo2_tex);
+    glBindTexture(GL_TEXTURE_2D, tex2);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    frame = 1;
 }

@@ -4,8 +4,8 @@
 
 constexpr double M_PI = 3.14159265358979323846;
 
-static int WINDOW_WIDTH = 1920;
-static int WINDOW_HEIGHT = 1080;
+inline int WINDOW_WIDTH = 1920;
+inline int WINDOW_HEIGHT = 1080;
 
 // you can't change this value, as it permits to have regular evaluation of n and k in the visible domain (visible domain won't be changed too).
 static constexpr unsigned int N_BINS = 16;

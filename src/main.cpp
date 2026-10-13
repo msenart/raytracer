@@ -39,8 +39,22 @@ void start() {
     std::cout << "Renderer: " << glGetString(GL_RENDERER) << "\n";
     std::cout << "Version: "  << glGetString(GL_VERSION)  << "\n";
 
-    // setting up the mesh scene
+    // display compute shader limitations
+    int x,y,z;
 
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &x);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &y);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &z);
+
+    std::cout << "Max work group: (x, y, z) = (" << x << ", " << y << ", " << z << ")\n";
+
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &x);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &y);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &z);
+
+    std::cout << "Max work group size: (x, y, z) = (" << x << ", " << y << ", " << z << ")\n";
+
+    // setting up the mesh scene
     MeshManager manager;
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -63,8 +77,8 @@ void start() {
     mesh->transform.rotation = glm::vec3(-glm::radians(53.0f), 0.0f, 0.0f);
     mesh->material.id = MaterialType::Glass;
     mesh->material.albedo.fill(1.f);
-    mesh->material.n = N_ALEXANDRITE;
-    mesh->material.k = K_ALEXANDRITE;
+    mesh->material.n = N_DIAMOND;
+    mesh->material.k = K_DIAMOND;
     mesh->material.metal_fuzz = 0.3f;
     manager.addMesh(mesh);
 
