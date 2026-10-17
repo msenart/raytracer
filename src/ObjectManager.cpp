@@ -97,7 +97,7 @@ void ObjectManager::buildBVH() {
         unsigned int id_node_next_left;
         unsigned int id_node_next_right;
         unsigned int mesh_id;
-        unsigned int mesh_type; // if 0, then it is not the AABB of any object (meaning that it is not a leaf). if 1, it is the AABB of a triangle, if 2, of a sphere.
+        unsigned int mesh_type;
         Node() = default;
 
         Node(const AABB & aabb, unsigned int id_node_next_left, unsigned int id_node_next_right, unsigned int mesh_id, unsigned int mesh_type) :
@@ -112,25 +112,38 @@ void ObjectManager::buildBVH() {
     for (const auto& mesh : meshes) {
         number_total_indices += mesh->indices.size();
     }
-    auto all_leaves = std::vector<Node>(number_total_indices/3);
+
+    std::vector<Node> all_leaves;
+    all_leaves.reserve(number_total_indices/3 + spheres.size());
+
+    const glm::vec3 pad(1e-5f);
+    unsigned int index_offset = 0;
     for (const auto& mesh : meshes) {
-        auto aabbs = mesh->aabb();
-        for (unsigned int i = 0; i < mesh->indices.size()/3; i++) {
-            AABB aabb = {glm::vec3(mesh->transform.matrix()*glm::vec4(aabb.min,1.0f)), mesh->transform.matrix()*glm::vec4(aabb.max,1.0f)};
-            all_leaves[i] = {aabb, UINT_MAX, UINT_MAX, i, 2};
+        const glm::mat4 M = mesh->transform.matrix();
+        for (unsigned int t = 0; t < mesh->indices.size()/3; t++) {
+            glm::vec3 mn(std::numeric_limits<float>::max());
+            glm::vec3 mx(std::numeric_limits<float>::lowest());
+            for (int k = 0; k < 3; k++) {
+                const glm::vec3 p = glm::vec3(M * glm::vec4(mesh->vertices[mesh->indices[3*t+k]].position, 1.f));
+                mn = glm::min(mn, p);
+                mx = glm::max(mx, p);
+            }
+            all_leaves.emplace_back(AABB{mn - pad, mx + pad}, UINT_MAX, UINT_MAX, index_offset + 3*t, 1);
         }
+        index_offset += mesh->indices.size();
     }
 
-    all_leaves.reserve(all_leaves.size() + spheres.size());
     for (unsigned int i = 0; i < spheres.size(); i++) {
-        auto aabb = spheres[i]->aabb();
-        aabb = {spheres[i]->pos + aabb.min, spheres[i]->pos + aabb.max};
-        all_leaves[i] = {aabb, UINT_MAX, UINT_MAX, i, 2};
+        const AABB local = spheres[i]->aabb();
+        all_leaves.emplace_back(AABB{spheres[i]->pos + local.min, spheres[i]->pos + local.max},
+                                UINT_MAX, UINT_MAX, i, 2);
     }
+
+    if (all_leaves.empty()) return;
 
     std::vector<Node> bvh_tree = all_leaves;
     std::vector<unsigned int> active(bvh_tree.size());
-    std::iota(active.begin(), active.end(), 0);
+    std::iota(active.begin(), active.end(), 0u);
 
     while (active.size() > 1) {
         std::vector<bool> used(bvh_tree.size(), false);
@@ -142,7 +155,7 @@ void ObjectManager::buildBVH() {
             unsigned int best_j = UINT_MAX;
             for (unsigned int j : active) {
                 if (i == j || used[j]) continue;
-                float d = AABB::distance(bvh_tree[i].aabb, bvh_tree[j].aabb);
+                float d = AABB::merge(bvh_tree[i].aabb, bvh_tree[j].aabb).surfaceArea();
                 if (d < best) { best = d; best_j = j; }
             }
             if (best_j == UINT_MAX) continue;
@@ -182,12 +195,12 @@ void ObjectManager::buildBVH() {
             mesh_type(n.mesh_type) {};
     };
 
-    std::vector<GPUNode> gpu_bvh_tree = std::vector<GPUNode>(bvh_tree.size());
+    std::vector<GPUNode> gpu_bvh_tree(bvh_tree.size());
     for (unsigned int i = 0; i < bvh_tree.size(); i++) {
         gpu_bvh_tree[i] = GPUNode(bvh_tree[i]);
     }
 
     glCreateBuffers(1, &bvh_ssbo);
-    glNamedBufferData(material_ssbo, gpu_bvh_tree.size() * sizeof(GPUNode), gpu_bvh_tree.data(), GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, material_ssbo);
+    glNamedBufferData(bvh_ssbo, gpu_bvh_tree.size() * sizeof(GPUNode), gpu_bvh_tree.data(), GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, bvh_ssbo);
 }

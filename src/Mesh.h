@@ -35,6 +35,8 @@ struct AABB {
     static float distance(const AABB& aabb1,const AABB& aabb2);
 
     static AABB merge(const AABB& aabb1,const AABB& aabb2);
+
+    [[nodiscard]] float surfaceArea() const;
 };
 struct Mesh {
     Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices);

@@ -19,8 +19,25 @@ layout(std430, binding = 4) readonly buffer NodesBuffer {
     Node nodes[];
 };
 
-HitProperties isRayIntersectingAABB(Ray r, vec3 min, vec3 max){
-    return HitProperties(false, UINT_MAX, UINT_MAX, 0, vec2(0), vec3(0));
+HitProperties isRayIntersectingAABB(Ray r, vec3 bmin, vec3 bmax){
+    vec3 invD = 1.0 / r.d;
+    vec3 t0 = (bmin - r.o) * invD;
+    vec3 t1 = (bmax - r.o) * invD;
+
+    vec3 tsmaller = min(t0, t1);
+    vec3 tbigger  = max(t0, t1);
+
+    float tNear = max(max(tsmaller.x, tsmaller.y), tsmaller.z);
+    float tFar  = min(min(tbigger.x,  tbigger.y),  tbigger.z);
+
+    bool hit = tNear <= tFar && tFar > 0.0;
+
+    HitProperties hp = HitProperties(false, UINT_MAX, UINT_MAX, 0.0, vec2(0), vec3(0));
+    if (hit) {
+        hp.hasHit = true;
+        hp.t = max(tNear, 0.0);   // 0 if the origin is inside the box.
+    }
+    return hp;
 }
 
 HitProperties bruteforce_traversal(Ray r){
@@ -43,71 +60,75 @@ HitProperties bruteforce_traversal(Ray r){
     return argmin_hp;
 }
 
+#define MAX_CHILDREN 2
+
 HitProperties bvh_traversal(Ray r){
-    uint cur_node_id = 0;
-    uint nodes_id_stack[64];
-    uint nodes_id_stack_size = 0;
-    nodes_id_stack[0] = nodes.length()-1;
+    HitProperties best = HitProperties(false, UINT_MAX, UINT_MAX, 0, vec2(0), vec3(0));
+    float closest = FLOAT_MAX;
 
-    Node cur_node = nodes[nodes_id_stack[cur_node_id]];
-    HitProperties hp = HitProperties(false, UINT_MAX, UINT_MAX, 0, vec2(0), vec3(0));
-    // if the root is not hit, do not traverse the tree.
-    if (!isRayIntersectingAABB(r, cur_node.min, cur_node.max).hasHit){
-        return hp;
+    uint stack[64];
+    uint sp = 0;
+
+    uint root = nodes.length() - 1;
+    if (!isRayIntersectingAABB(r, nodes[root].min, nodes[root].max).hasHit) {
+        return best;
     }
-    bool isIntersecting = true;
-    while (isIntersecting){
-        // if the node is a leaf then...
-        switch (cur_node.mesh_type){
-            case 0:
-                break;
-            case 1:
-                hp = isRayIntersectingTriangle(r, indices[cur_node.mesh_id].index, indices[cur_node.mesh_id + 1].index, indices[cur_node.mesh_id + 2].index, false, 1, cur_node.mesh_id);
-                if (hp.hasHit){
-                    return hp;
-                }
-                cur_node_id-=1; // take care of unstacking...
-                break;
-            case 2:
-                hp = isRayIntersectingSphere(r, spheres[cur_node.mesh_id], 2, cur_node.mesh_id);
-                if (hp.hasHit){
-                    return hp;
-                }
-                cur_node_id-=1; // take care of unstacking...
-                break;
-        }
+    stack[sp++] = root;
 
-        // sort ids by distance to the ray, conditionally by if it has hit something
-        uint ids[2] = { cur_node.id_node_next_left, cur_node.id_node_next_right };
-        uint sorted_ids[2];
-        uint sorted_ids_size = 0;
-        for (uint i = 0; i < 2; i++){
-            float min_distance = FLOAT_MAX;
-            uint argmin_distance = UINT_MAX;
-            for (uint j = 0; j < 2; j++){
-                HitProperties hp = isRayIntersectingAABB(r, nodes[ids[i]].min, nodes[ids[i]].max);
-                bool in_sorted_ids = false;
-                for (uint k = 0; k < sorted_ids_size; k++){
-                    if (ids[j] == sorted_ids[k]){
-                        in_sorted_ids = true;
-                        break;
-                    }
-                }
-                if (hp.hasHit && !in_sorted_ids && hp.t < min_distance){
-                    argmin_distance = ids[i];
-                    min_distance = hp.t;
+    while (sp > 0) {
+        Node node = nodes[stack[--sp]];
+
+        if (node.mesh_type == 1) {
+            HitProperties hp = isRayIntersectingTriangle(r,
+                    indices[node.mesh_id].index,
+                    indices[node.mesh_id + 1].index,
+                    indices[node.mesh_id + 2].index,
+                    false, 1, indices[node.mesh_id].mesh_id);
+            if (hp.hasHit && hp.t < closest) {
+                closest = hp.t; best = hp;
+            }
+        }
+        else if (node.mesh_type == 2) {
+            HitProperties hp = isRayIntersectingSphere(r, spheres[node.mesh_id], 2, node.mesh_id);
+            if (hp.hasHit && hp.t < closest) {
+                closest = hp.t; best = hp;
+            }
+        }
+        else {
+            // loop over children keep those who are hit.
+            uint  ids[MAX_CHILDREN];
+            float ts[MAX_CHILDREN];
+            uint  count = 0;
+            uint children[2] = {node.id_node_next_left, node.id_node_next_right};
+            for (uint c = 0; c < 2; c++) {
+                uint cid = children[c];
+                HitProperties h = isRayIntersectingAABB(r, nodes[cid].min, nodes[cid].max);
+                if (h.hasHit && h.t < closest) {
+                    ids[count] = cid;
+                    ts[count]  = h.t;
+                    count++;
                 }
             }
-            sorted_ids[i] = ids[argmin_distance];
-            sorted_ids_size+=1;
+
+            // insertion sort, from the furthest to the closest
+            for (uint a = 1; a < count; a++) {
+                uint  ida = ids[a];
+                float ta  = ts[a];
+                uint b = a;
+                while (b > 0 && ts[b - 1] < ta) {
+                    ids[b] = ids[b - 1];
+                    ts[b]  = ts[b - 1];
+                    b--;
+                }
+                ids[b] = ida;
+                ts[b]  = ta;
+            }
+
+            // stacking : the closest is at the top, the furthest at the bottom
+            for (uint a = 0; a < count; a++) {
+                stack[sp++] = ids[a];
+            }
         }
-        nodes_id_stack_size+=sorted_ids_size;
-        // ...and append the result in the stack directly.
-        for (uint i = 0; i < sorted_ids_size; i++){
-            nodes_id_stack[nodes_id_stack_size-1-i] = sorted_ids[i];
-        }
-        // Increment cur_node_id
-        cur_node_id += sorted_ids_size;
     }
-    return HitProperties(false, 0, 0, 0, vec2(0), vec3(0));
+    return best;
 }

@@ -100,7 +100,7 @@ void start() {
     sphere->material.albedo.fill(1.f);
     sphere->material.metal_fuzz = 0.3f;
     manager.addSphere(sphere);
-    manager.buildBVH();
+    manager.buildBVH(); // it is weird that this function must be before buildSSBOs...
     manager.buildSSBOs();
 }
 

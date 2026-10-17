@@ -34,7 +34,7 @@ vec2 uvScreen = vec2(gl_GlobalInvocationID.xy)/windowSize;
 float Trace(Ray r) {
     Ray cur_r = r;
     for (uint depth = 0; depth < MAX_ITER; depth++){
-        HitProperties hp = bruteforce_traversal(cur_r);
+        HitProperties hp = bvh_traversal(cur_r);
         if (hp.argmin_mesh < UINT_MAX){ // if the ray has hit a mesh
             if (hp.argmin_mesh_type == 1 && materials[hp.argmin_mesh].id == 0){ // the mesh is emissive
                 return materials[hp.argmin_mesh].intensity*planckPdfUm(cur_r.lambda, materials[hp.argmin_mesh].T)*cur_r.throughput;

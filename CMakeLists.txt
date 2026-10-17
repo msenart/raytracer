@@ -45,17 +45,7 @@ file(GLOB_RECURSE sources CONFIGURE_DEPENDS
         "${SOURCE_DIR}/*.hpp"
 )
 
-add_executable(raytracer ${sources}
-        src/Screen.cpp
-        src/Screen.h
-        src/Globals.h
-        src/Context.h
-        src/MeshHelpers.cpp
-        src/MeshHelpers.h
-        src/Mesh.cpp
-        src/Mesh.h
-        src/ObjectManager.cpp
-        src/ObjectManager.h)
+add_executable(raytracer ${sources})
 
 target_precompile_headers(raytracer PRIVATE src/OpenGLIncludes.h)
 

@@ -1,9 +1,9 @@
 #include "Mesh.h"
 
-float AABB::distance(const AABB &aabb1, const AABB &aabb2) {
-    const auto u = glm::length(aabb1.min - aabb2.max);
-    const auto v = glm::length(aabb2.max - aabb1.min);
-    return static_cast<float>(std::sqrt(u*u + v*v)) ;
+float AABB::distance(const AABB &a, const AABB &b) {
+    const glm::vec3 gap = glm::max(glm::vec3(0.f),
+                                   glm::max(a.min - b.max, b.min - a.max));
+    return glm::length(gap);
 }
 
 AABB AABB::merge(const AABB &aabb1, const AABB &aabb2) {
@@ -16,6 +16,11 @@ AABB AABB::merge(const AABB &aabb1, const AABB &aabb2) {
         std::max({aabb1.max.y, aabb2.max.y}),
         std::max({aabb1.max.z, aabb2.max.z}));
     return {min, max};
+}
+
+float AABB::surfaceArea() const {
+    const glm::vec3 d = max - min;
+    return 2.f * (d.x * d.y + d.y * d.z + d.z * d.x);
 }
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices): vertices(std::move(vertices)), indices(std::move(indices)){}
@@ -48,7 +53,6 @@ Sphere::Sphere(glm::vec3 pos, float radius, Material material): pos(pos), radius
 Sphere::Sphere(glm::vec3 pos, float radius): pos(pos), radius(radius), material(Material()) {}
 
 AABB Sphere::aabb() const {
-    auto pos1 = glm::vec3(0) - glm::vec3(static_cast<float>(std::sqrt(3)) * radius);
-    auto pos2 = glm::vec3(static_cast<float>(std::sqrt(3)) * radius);
-    return {pos1, pos2};
+    const glm::vec3 r(radius);
+    return { -r,  r};
 }
