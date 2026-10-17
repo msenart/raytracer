@@ -23,7 +23,7 @@ vec3 triangleNormal(uint i0, uint i1, uint i2, vec2 uv, bool interpolation) {
     return n;
 }
 
-HitProperties isRayIntersectingTriangle(Ray r, uint i0, uint i1, uint i2, bool normalInterpolation){
+HitProperties isRayIntersectingTriangle(Ray r, uint i0, uint i1, uint i2, bool normalInterpolation, uint argmin_mesh_type, uint argmin_mesh){
     vec3 v0 = vertices[i0].position;
     vec3 v1 = vertices[i1].position;
     vec3 v2 = vertices[i2].position;
@@ -34,26 +34,26 @@ HitProperties isRayIntersectingTriangle(Ray r, uint i0, uint i1, uint i2, bool n
     vec3 h = cross(r.d, e2);
     float a = dot(h, e1);
     if (abs(a) < eps){
-        return HitProperties(false, 0, vec2(0), vec3(0));
+        return HitProperties(false, argmin_mesh_type, argmin_mesh, 0, vec2(0), vec3(0));
     }
     float f = 1.f/a;
     vec3 s = r.o - v0;
     float u = f * dot(h,s);
     if (u < 0.0 || u > 1.0){
-        return HitProperties(false, 0, vec2(0), vec3(0));
+        return HitProperties(false, argmin_mesh_type, argmin_mesh, 0, vec2(0), vec3(0));
     }
     vec3 q = cross(s,e1);
     float v = f * dot(r.d,q);
     if (v < 0.0 || u + v > 1.0){
-        return HitProperties(false, 0, vec2(0), vec3(0));
+        return HitProperties(false, argmin_mesh_type, argmin_mesh, 0, vec2(0), vec3(0));
     }
     float t = f * dot(q, e2);
     if (t > eps)
     {
-        return HitProperties(true, t, vec2(u, v), triangleNormal(i0, i1, i2, vec2(u, v), normalInterpolation));
+        return HitProperties(true, argmin_mesh_type, argmin_mesh, t, vec2(u, v), triangleNormal(i0, i1, i2, vec2(u, v), normalInterpolation));
     }
     else
-    return HitProperties(false, 0, vec2(0), vec3(0));
+    return HitProperties(false, argmin_mesh_type, argmin_mesh, 0, vec2(0), vec3(0));
 }
 
 #endif

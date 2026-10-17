@@ -2,7 +2,7 @@
 #include "Parameters.h"
 #include "Globals.h"
 #include "Context.h"
-#include "MeshManager.h"
+#include "ObjectManager.h"
 #include "Mesh.h"
 #include "MeshHelpers.h"
 
@@ -55,7 +55,7 @@ void start() {
     std::cout << "Max work group size: (x, y, z) = (" << x << ", " << y << ", " << z << ")\n";
 
     // setting up the mesh scene
-    MeshManager manager;
+    ObjectManager manager;
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::shared_ptr<Mesh> mesh;
@@ -100,7 +100,7 @@ void start() {
     sphere->material.albedo.fill(1.f);
     sphere->material.metal_fuzz = 0.3f;
     manager.addSphere(sphere);
-
+    manager.buildBVH();
     manager.buildSSBOs();
 }
 

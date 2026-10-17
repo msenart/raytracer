@@ -28,11 +28,20 @@ struct Material {
         k.fill(0.f);
     }
 };
+struct AABB {
+    glm::vec3 min;
+    glm::vec3 max;
 
+    static float distance(const AABB& aabb1,const AABB& aabb2);
+
+    static AABB merge(const AABB& aabb1,const AABB& aabb2);
+};
 struct Mesh {
     Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices);
     Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices, Material material);
     Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices, Material material, Transform transform);
+
+    [[nodiscard]] std::vector<AABB> aabb() const;
 
     Material material;
     Transform transform;
@@ -45,6 +54,8 @@ struct Sphere {
     glm::vec3 pos;
     float radius;
     Material material;
+
+    [[nodiscard]] AABB aabb() const;
 
     Sphere(glm::vec3 pos, float radius, Material material);
     Sphere(glm::vec3 pos, float radius);

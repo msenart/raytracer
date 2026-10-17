@@ -54,8 +54,8 @@ add_executable(raytracer ${sources}
         src/MeshHelpers.h
         src/Mesh.cpp
         src/Mesh.h
-        src/MeshManager.cpp
-        src/MeshManager.h)
+        src/ObjectManager.cpp
+        src/ObjectManager.h)
 
 target_precompile_headers(raytracer PRIVATE src/OpenGLIncludes.h)
 

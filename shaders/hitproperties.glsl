@@ -3,6 +3,8 @@
 
 struct HitProperties{
     bool hasHit;
+    uint argmin_mesh_type;
+    uint argmin_mesh;
     float t;
     vec2 uv;
     vec3 normal;

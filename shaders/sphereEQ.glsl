@@ -18,26 +18,26 @@ vec3 sphereNormal(Sphere s, vec3 pos){
     return normalize(pos - s.pos);
 }
 
-HitProperties isRayIntersectingSphere(Ray r, Sphere s){
+HitProperties isRayIntersectingSphere(Ray r, Sphere s, uint argmin_mesh_type, uint argmin_mesh){
     float a = dot(r.d, r.d);
     float b = 2*dot(r.d, r.o - s.pos);
     float c = dot(r.o - s.pos, r.o - s.pos) - s.radius*s.radius;
     float delta = b*b - 4 * a * c;
 
     if (delta < 0){ // if there is no solution
-        return HitProperties(false, 0, vec2(0), vec3(0));
+        return HitProperties(false, argmin_mesh_type, argmin_mesh, 0, vec2(0), vec3(0));
     }
     // we have to find the smallest positive solution, otherwise, no intersection.
     if ((-b-sqrt(delta))/(2.f*a) > eps){
         float sol = (-b-sqrt(delta))/(2.f*a);
-        return HitProperties(true, sol, vec2(0), sphereNormal(s, r.o + sol*r.d));
+        return HitProperties(true, argmin_mesh_type, argmin_mesh, sol, vec2(0), sphereNormal(s, r.o + sol*r.d));
     }
     else if ((-b+sqrt(delta))/(2.f*a) > eps){
         float sol = (-b+sqrt(delta))/(2.f*a);
-        return HitProperties(true, sol, vec2(0), sphereNormal(s, r.o + sol*r.d));
+        return HitProperties(true, argmin_mesh_type, argmin_mesh, sol, vec2(0), sphereNormal(s, r.o + sol*r.d));
     }
     else {
-        return HitProperties(false, 0, vec2(0), vec3(0));
+        return HitProperties(false, argmin_mesh_type, argmin_mesh, 0, vec2(0), vec3(0));
     }
 }
 

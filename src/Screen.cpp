@@ -30,7 +30,6 @@ Screen::Screen() {
     ibo->setData(indices.size()*sizeof(unsigned int),indices.data(), GL_STATIC_DRAW);
     vao->addVBO(*vbo,{va});
     vao->unbind();
-    sp = std::make_shared<Shader>(Shader::fromFiles("test.vert","meshtracing.frag"));
     sp2 = std::make_shared<Shader>(Shader::fromFiles("fbo_render.vert","fbo_render.frag"));
     cs = std::make_shared<Shader>(Shader::computeFile("meshtracing.comp"));
 
