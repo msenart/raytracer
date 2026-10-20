@@ -1,5 +1,7 @@
 #pragma once
 
+#include "OpenGLIncludes.h"
+
 class Mesh;
 class Sphere;
 

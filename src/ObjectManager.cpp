@@ -3,10 +3,7 @@
 //
 
 #include "ObjectManager.h"
-
-#include <numeric>
 #include "Mesh.h"
-#include <utility>
 
 ObjectManager::ObjectManager(std::vector<std::shared_ptr<Mesh>> meshes) : meshes(std::move(meshes)) {
 }

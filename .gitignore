@@ -11,3 +11,7 @@ CTestTestfile.cmake
 _deps
 build
 raytracer.exe
+*.fbx
+*.stl
+!assets/Stanford_Bunny.stl
+!assets/diamond.fbx

@@ -5,11 +5,11 @@
 #include <glfw/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
-#include "stb_image.h"
-#include "stb_image_write.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "stb_image.h"
+#include "stb_image_write.h"
 #include "assimp/Importer.hpp"
 #include "assimp/mesh.h"
 #include "assimp/postprocess.h"
@@ -30,3 +30,4 @@
 #include <utility>
 #include <regex>
 #include <set>
+#include <numeric>

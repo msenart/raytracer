@@ -67,6 +67,20 @@ static constexpr std::array<float, N_BINS> K_GOLD{
     3.503f, 3.702f, 3.882f, 4.062f
 };
 
+static constexpr std::array<float, N_BINS> N_AQUAMARINE{
+    1.610f, 1.603f, 1.598f, 1.593f,
+    1.589f, 1.585f, 1.582f, 1.579f,
+    1.577f, 1.575f, 1.573f, 1.572f,
+    1.570f, 1.569f, 1.568f, 1.567f
+};
+
+static constexpr std::array<float, N_BINS> K_AQUAMARINE{
+    1.0e-6f, 1.0e-6f, 1.0e-6f, 1.0e-6f,
+    1.0e-6f, 1.0e-6f, 1.0e-6f, 1.0e-6f,
+    1.0e-6f, 1.0e-6f, 2.0e-6f, 2.0e-6f,
+    3.0e-6f, 3.0e-6f, 4.0e-6f, 5.0e-6f
+};
+
 static constexpr std::array<float, N_BINS> N_COPPER{
     1.313f, 1.268f, 1.245f, 1.244f,
     1.239f, 1.213f, 1.181f, 1.070f,

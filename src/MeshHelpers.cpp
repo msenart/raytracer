@@ -209,32 +209,33 @@ void MeshHelpers::generateFromFile(const std::string& path, std::vector<Vertex>&
         return;
     }
 
-    unsigned int _test = scene->mNumMeshes;
-    aiMesh* mesh = scene->mMeshes[0];
-    vertices.reserve(mesh->mNumVertices);
-    indices.reserve(mesh->mNumFaces * 3);
+    for (int mesh_i = 0; mesh_i < scene->mNumMeshes; ++mesh_i) {
+        aiMesh* mesh = scene->mMeshes[mesh_i];
+        vertices.reserve(vertices.size() + mesh->mNumVertices);
+        indices.reserve(indices.size() + mesh->mNumFaces * 3);
 
-    for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
-        Vertex vertex{};
-        vertex.position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
+        for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+            Vertex vertex{};
+            vertex.position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
 
-        if (mesh->HasNormals())
-            vertex.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+            if (mesh->HasNormals())
+                vertex.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
 
-        if (mesh->HasTextureCoords(0))
-            vertex.uv = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
+            if (mesh->HasTextureCoords(0))
+                vertex.uv = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
 
-        if (mesh->HasTangentsAndBitangents())
-            vertex.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z, 1.0f };
+            if (mesh->HasTangentsAndBitangents())
+                vertex.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z, 1.0f };
 
-        vertices.push_back(vertex);
+            vertices.push_back(vertex);
+        }
+        for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+            aiFace face = mesh->mFaces[i];
+            for (unsigned int j = 0; j < face.mNumIndices; j++)
+                indices.push_back(face.mIndices[j]);
+        }
+        std::cout << "Geometry : " << vertices.size() << " vertices, " << indices.size() / 3 << " faces." << std::endl;
     }
-    for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
-        aiFace face = mesh->mFaces[i];
-        for (unsigned int j = 0; j < face.mNumIndices; j++)
-            indices.push_back(face.mIndices[j]);
-    }
-    std::cout << "Geometry : " << vertices.size() << " vertices, " << indices.size() / 3 << " faces." << std::endl;
 }
 
 

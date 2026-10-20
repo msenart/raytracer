@@ -83,7 +83,7 @@ HitProperties bvh_traversal(Ray r){
                     indices[node.mesh_id].index,
                     indices[node.mesh_id + 1].index,
                     indices[node.mesh_id + 2].index,
-                    false, 1, indices[node.mesh_id].mesh_id);
+                    true, 1, indices[node.mesh_id].mesh_id);
             if (hp.hasHit && hp.t < closest) {
                 closest = hp.t; best = hp;
             }

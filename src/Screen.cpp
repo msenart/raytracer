@@ -59,6 +59,10 @@ void Screen::draw() {
     cs->bind();
     cs->set("frame",frame);
     cs->set("windowSize", glm::vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
+
+    // attaching global variables into the shader
+    raytracer_params.upload(cs);
+
     vao->bind();
     // choosing which fbo to render
     auto read_tex = isTex1 ? tex1 : tex2;

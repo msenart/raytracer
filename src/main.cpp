@@ -5,6 +5,7 @@
 #include "ObjectManager.h"
 #include "Mesh.h"
 #include "MeshHelpers.h"
+#include "UI.h"
 
 extern "C" {
 __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
@@ -17,8 +18,6 @@ double currentTime = 0.0f;
 double deltaTime = 0.0f;
 void ProcessInput(GLFWwindow* window)
 {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
     context->camera.processKeyboard(window,deltaTime);
 }
 
@@ -73,28 +72,26 @@ void start() {
 
     MeshHelpers::generateFromFile("../assets/diamond.fbx", vertices, indices);
     mesh = std::make_shared<Mesh>(vertices, indices);
-    mesh->transform.position = glm::vec3(0.0f, -0.35f, 0.0f);
+    mesh->transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
     mesh->transform.rotation = glm::vec3(-glm::radians(53.0f), 0.0f, 0.0f);
     mesh->material.id = MaterialType::Glass;
     mesh->material.albedo.fill(1.f);
-    mesh->material.n = N_DIAMOND;
-    mesh->material.k = K_DIAMOND;
+    mesh->material.n = N_GOLD;
+    mesh->material.k = K_GOLD;
     mesh->material.metal_fuzz = 0.3f;
     manager.addMesh(mesh);
 
-    // sphere = std::make_shared<Sphere>(glm::vec3(0),0.8f);
-    // sphere->material.id = MaterialType::Glass;
-    // sphere->material.albedo.fill(1.f);
-    // // mesh->material.B = glm::vec3(4.3356, 0.3306, 0.0);
-    // // mesh->material.lam0 = glm::vec3(0.1750, 0.1060, 100.0);
-    // // mesh->material.Gam = glm::vec3(0.0f);
-    // sphere->material.B = glm::vec3(92.87, 0.233, 3.524);;
-    // sphere->material.lam0 = glm::vec3(1.7167, 0.7597, 0.3378);
-    // sphere->material.Gam = glm::vec3(0.0, 0.1964, 0.1752);
-    // sphere->material.metal_fuzz = 0.3f;
-    // sphere->material.eta_test = 1.5f;
-    // manager.addSphere(sphere);
-    //
+    MeshHelpers::generateFromFile("../assets/diamond.fbx", vertices, indices);
+    mesh = std::make_shared<Mesh>(vertices, indices);
+    mesh->transform.position = glm::vec3(3.0f, -0.35f, 0.0f);
+    mesh->transform.rotation = glm::vec3(-glm::radians(53.0f), 0.0f, 0.0f);
+    mesh->material.id = MaterialType::Glass;
+    mesh->material.albedo.fill(1.f);
+    mesh->material.n = N_GOLD;
+    mesh->material.k = K_GOLD;
+    mesh->material.metal_fuzz = 0.3f;
+    manager.addMesh(mesh);
+
     sphere = std::make_shared<Sphere>(glm::vec3(0.0f, -1001.0f, -2.5f), 1000.f);
     sphere->material.id = MaterialType::Lambertian;
     sphere->material.albedo.fill(1.f);
@@ -107,8 +104,6 @@ void start() {
 void update(){
     deltaTime = glfwGetTime() - currentTime;
     currentTime = glfwGetTime();
-
-    context->screen.draw();
 }
 
 int main()
@@ -153,6 +148,23 @@ int main()
             context->camera.mouseCallback(window, xpos, ypos);
         });
 
+        // setting the keyboard callbacks
+        glfwSetKeyCallback(window, [](GLFWwindow* w, int key, int scancode, int action, int mods) {
+            auto* ctx = static_cast<Context*>(glfwGetWindowUserPointer(w));
+            if (key == GLFW_KEY_F2 && action == GLFW_PRESS) {
+                ctx->camera.can_move = !ctx->camera.can_move;
+                glfwSetInputMode(w, GLFW_CURSOR,
+                    ctx->camera.can_move ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+            }
+            else if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
+                ctx->screen.resetTextures();
+            }
+        });
+
+        // setting up ImGui
+        UI ui{};
+        ui.start();
+
         // modifying variables before runtimes
         start();
 
@@ -163,14 +175,19 @@ int main()
             // Druids are the best
             glClearColor(1.00f, 0.49f, 0.04f, 1.00f);
             glClear(GL_COLOR_BUFFER_BIT);
-
             update();
+            context->screen.draw();
 
+            ui.update();
+            ui.render();
+
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
 
         context.reset();
+        ui.stop();
         glfwTerminate();
         return 0;
     }
