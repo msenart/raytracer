@@ -23,4 +23,4 @@
 - [ ] Implement Disney diffuse and GGX specular on top of it.
 - [ ] Solve the bug of having a mesh taking partially its previous refraction properties.
 - [ ] Improve BVH to load heavier meshes
-- [ ] Improve spectral convergence
+- [ ] Improve spectral convergence using NEE
