@@ -65,7 +65,7 @@ float Trace(Ray r) {
             float isReflection = -sign(dot(reflection.R,N)*dot(cur_r.d,N)); // 1 if reflection, -1 if refraction.
             float side = dot(reflection.R, N) >= 0.0 ? 1.0 : -1.0;
 
-            // keeping the mesh_id in which we stay
+            // keeping the material_id in which we stay
             uint new_in_objtype_id = isReflection == 1.f ? cur_r.in_objtype_id :
             (isGoingOut ? UINT_MAX : hp.argmin_mesh_type);
             uint new_in_obj_id = isReflection == 1.f ? cur_r.in_obj_id :
@@ -74,7 +74,7 @@ float Trace(Ray r) {
             cur_r = Ray(O + side*2*eps*N,reflection.R,cur_r.throughput*reflection.coef, cur_r.lambda,new_in_objtype_id, new_in_obj_id);
         }
         else { // if the ray has hit nothing
-            return BACKGROUND_INTENSITY*cur_r.throughput/lambdaPdfUm(cur_r.lambda);
+            return BACKGROUND_INTENSITY*cur_r.throughput;
         }
 
         // russian roulette
@@ -84,7 +84,7 @@ float Trace(Ray r) {
             cur_r.throughput/=0.5f;
         }
     }
-    return BACKGROUND_INTENSITY*cur_r.throughput/lambdaPdfUm(cur_r.lambda); // or background color
+    return BACKGROUND_INTENSITY*cur_r.throughput; // or background color
 }
 
 // No blurring

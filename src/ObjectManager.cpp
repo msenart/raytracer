@@ -27,30 +27,42 @@ void ObjectManager::buildSSBOs() {
     struct IndexAndMeshID {
         unsigned int index;
         unsigned int material_id;
-        float _pad0;
-        float _pad1;
+        unsigned int transform_index;
+        float _pad0 = 0;
 
-        IndexAndMeshID(unsigned int index, unsigned int mesh_id) : index(index), material_id(mesh_id) {}
+        IndexAndMeshID(unsigned int index, unsigned int material_id, unsigned int transform_index) : index(index), material_id(material_id), transform_index(transform_index) {}
     };
 
     primitives_number = 0;
 
+    struct GPUVertex {
+        glm::vec3 position;
+        float _pad0 = 0;
+        glm::vec3 normal;
+        float _pad1 = 0;
+        glm::vec4 tangent;
+        glm::vec2 uv;
+        float _pad2 = 0;
+        float _pad3 = 0;
+
+        GPUVertex(Vertex vertex) : position(vertex.position), normal(vertex.normal), tangent(vertex.tangent), uv(vertex.uv) {}
+    };
+
     // concatenating vertices and indices into one big array.
-    auto _vertices = std::vector<Vertex>();
+    auto _vertices = std::vector<GPUVertex>();
     auto _indices = std::vector<IndexAndMeshID>();
     auto _materials = std::vector<Material>();
+    auto _transforms = std::vector<glm::mat4>();
+
     unsigned int offset = 0;
     for (unsigned int i = 0; i < meshes.size(); i++) {
         for (const auto& vertex: meshes[i]->vertices) {
-            Vertex v = vertex;
-            v.position = glm::vec3(meshes[i]->transform.matrix() * glm::vec4(v.position,1.0f));
-            v.normal = glm::normalize(glm::inverseTranspose(glm::mat3(meshes[i]->transform.matrix())) * v.normal);
-            v.tangent = glm::vec4(glm::normalize(glm::mat3(meshes[i]->transform.matrix()) * glm::vec3(v.tangent)), v.tangent.w);
-            _vertices.push_back(v);
+            _vertices.emplace_back(vertex);
         }
         for (const auto& index: meshes[i]->indices) {
-            _indices.emplace_back(offset + index, i);
+            _indices.emplace_back(offset + index, i, _transforms.size());
         }
+        _transforms.emplace_back(meshes[i]->transform.matrix());
         _materials.push_back(meshes[i]->material);
         offset+=meshes[i]->vertices.size();
     }
@@ -58,7 +70,7 @@ void ObjectManager::buildSSBOs() {
 
     // modern way to use SSBO (just like VBO, VAO, etc...)
     glCreateBuffers(1, &vertices_ssbo);
-    glNamedBufferData(vertices_ssbo, _vertices.size() * sizeof(Vertex), _vertices.data(), GL_STATIC_DRAW);
+    glNamedBufferData(vertices_ssbo, _vertices.size() * sizeof(GPUVertex), _vertices.data(), GL_STATIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertices_ssbo);
 
     glCreateBuffers(1, &indices_ssbo);
@@ -67,18 +79,19 @@ void ObjectManager::buildSSBOs() {
 
     // taking care of sphere equations
     struct GPUSphere {
-        glm::vec3 position;
+        unsigned int transform_index;
         float radius;
         unsigned int material_id;
-        float _pad0[3];
+        float _pad0 = 0;
 
-        GPUSphere(glm::vec3 position, float radius, unsigned int material_id) : position(position), radius(radius), material_id(material_id) {}
+        GPUSphere(unsigned int transform_index, float radius, unsigned int material_id) : transform_index(transform_index), radius(radius), material_id(material_id) {}
     };
     auto _spheres = std::vector<GPUSphere>();
-    for (auto& sphere : spheres) {
+    for (unsigned int i = 0; i < spheres.size(); i++) {
         uint32_t material_id = static_cast<uint32_t>(_materials.size()); // index of the material about to be added
-        _materials.push_back(sphere->material);
-        _spheres.emplace_back(sphere->pos, sphere->radius, material_id);
+        _materials.push_back(spheres[i]->material);
+        _spheres.emplace_back(_transforms.size(), spheres[i]->radius, material_id);
+        _transforms.emplace_back(glm::translate(glm::mat4(1), spheres[i]->pos));
     }
     primitives_number+=_spheres.size();
 
@@ -91,6 +104,10 @@ void ObjectManager::buildSSBOs() {
     glNamedBufferData(material_ssbo, _materials.size() * sizeof(Material), _materials.data(), GL_STATIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, material_ssbo);
 
+    // Setting the transform SSBO
+    glCreateBuffers(1, &transform_ssbo);
+    glNamedBufferData(transform_ssbo, _transforms.size() * sizeof(glm::mat4), _transforms.data(), GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, transform_ssbo);
 }
 
 void ObjectManager::buildBVH() {

@@ -41,7 +41,7 @@ void start() {
 
     MeshHelpers::generateCube(vertices, indices);
     mesh = std::make_shared<Mesh>(vertices, indices);
-    mesh->transform.position = glm::vec3(0.0f, 2.0f, 0.0f);
+    mesh->transform.position = glm::vec3(0.0f, 4.0f, 0.0f);
     mesh->material.id = MaterialType::Light;
     mesh->material.intensity = 15.f;
     mesh->material.albedo.fill(1.f);
@@ -56,8 +56,8 @@ void start() {
     mesh->transform.rotation = glm::vec3(-glm::radians(53.0f), 0.0f, 0.0f);
     mesh->material.id = MaterialType::Glass;
     mesh->material.albedo.fill(1.f);
-    mesh->material.n = N_SAPPHIRE;
-    mesh->material.k = K_SAPPHIRE;
+    mesh->material.n = N_ALEXANDRITE;
+    mesh->material.k = K_ALEXANDRITE;
     mesh->material.metal_fuzz = 0.3f;
     manager.addMesh(mesh);
 
@@ -71,12 +71,14 @@ void start() {
     mesh->material.k = K_DIAMOND;
     mesh->material.metal_fuzz = 0.3f;
     manager.addMesh(mesh);
-
+    //
     sphere = std::make_shared<Sphere>(glm::vec3(0.0f, -1001.0f, -2.5f), 1000.f);
     sphere->material.id = MaterialType::Lambertian;
     sphere->material.albedo.fill(1.f);
     sphere->material.metal_fuzz = 0.3f;
     manager.addSphere(sphere);
+
+
     manager.buildBVH(); // it is weird that this function must be before buildSSBOs...
     manager.buildSSBOs();
 }

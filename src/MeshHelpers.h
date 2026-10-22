@@ -1,15 +1,12 @@
-//
-// Created by mathi on 27/09/2026.
-//
-
 #pragma once
 
+#include "OpenGLIncludes.h"
 
 struct Vertex {
-    glm::vec3 position; float _pad0 = 0;
-    glm::vec3 normal;   float _pad1 = 0;
+    glm::vec3 position;
+    glm::vec3 normal;
     glm::vec4 tangent;
-    glm::vec2 uv;       glm::vec2 _pad2{0};
+    glm::vec2 uv;
 
     Vertex(glm::vec3 position, glm::vec3 normal, glm::vec4 tangent, glm::vec2 uv) :
     position(position),

@@ -2,17 +2,21 @@
 #define VERTICES_GLSL
 
 struct Vertex{
-    vec3 position;  float _pad0;
-    vec3 normal;    float _pad1;
+    vec3 position;
+    float _pad0;
+    vec3 normal;
+    float _pad1;
     vec4 tangent;
-    vec2 uv;        vec2 _pad2;
+    vec2 uv;
+    float _pad2;
+    float _pad3;
 };
 
 struct IndexAndMeshID{
     uint index;
-    uint mesh_id;
-    uint _pad0;
-    uint _pad1;
+    uint material_id;
+    uint transform_index;
+    float _pad0;
 };
 
 // Vertices SSBO

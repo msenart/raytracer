@@ -44,7 +44,7 @@ HitProperties bruteforce_traversal(Ray r){
     float min_distance = FLOAT_MAX;
     HitProperties argmin_hp = HitProperties(false, UINT_MAX, UINT_MAX, 0, vec2(0), vec3(0));
     for (uint i = 0; i < indices.length(); i += 3) { // handling triangles (mesh_type = 1)
-        HitProperties hp = isRayIntersectingTriangle(r, indices[i].index, indices[i+1].index, indices[i+2].index, false, 1, indices[i].mesh_id); // materials[argmin_mesh].normalInterpolation
+        HitProperties hp = isRayIntersectingTriangle(r, indices[i].index, indices[i+1].index, indices[i+2].index, indices[i].transform_index, false, 1, indices[i].material_id); // materials[argmin_mesh].normalInterpolation
         if (hp.hasHit && hp.t < min_distance) {
             min_distance = hp.t;
             argmin_hp = hp;
@@ -83,7 +83,8 @@ HitProperties bvh_traversal(Ray r){
                     indices[node.mesh_id].index,
                     indices[node.mesh_id + 1].index,
                     indices[node.mesh_id + 2].index,
-                    true, 1, indices[node.mesh_id].mesh_id);
+                    indices[node.mesh_id].transform_index,
+                    false, 1, indices[node.mesh_id].material_id);
             if (hp.hasHit && hp.t < closest) {
                 closest = hp.t; best = hp;
             }
