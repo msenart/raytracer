@@ -1,6 +1,7 @@
 #include "UI.h"
 #include "Globals.h"
 #include "Context.h"
+#include "MeshHelpers.h"
 void UI::start() {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
@@ -43,6 +44,10 @@ void UI::update() {
     ImGui::Text("Primitives: %u", primitives_number);
     ImGui::End();
 
+    sceneWindow(*context);
+
+    if (context->screen.mode != RenderMode::Raytracing) return;
+
     ImGui::Begin("Raytracing global parameters");
     ImGui::SeparatorText("Rendering");
     changed |= ImGui::SliderScalar("Max iterations", ImGuiDataType_U32, &p.max_iter, &one, &max_iter_cap);
@@ -64,6 +69,180 @@ void UI::update() {
         context->screen.resetTextures();
     }
     ImGui::End();
+}
+
+void UI::sceneWindow(Context& context) {
+    auto& manager = context.objectManager;
+    const bool rasterization = context.screen.mode == RenderMode::Rasterization;
+
+    ImGui::Begin("Scene");
+    ImGui::SeparatorText("Render mode (F4)");
+    if (ImGui::RadioButton("Rasterization", rasterization)) context.setRenderMode(RenderMode::Rasterization);
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Raytracing", !rasterization)) context.setRenderMode(RenderMode::Raytracing);
+
+    if (rasterization) addRemoveControls(context);
+
+    ImGui::SeparatorText("Selection");
+    Mesh* mesh = manager.selectedMesh();
+    Sphere* sphere = manager.selectedSphere();
+    if (!mesh && !sphere) {
+        ImGui::TextWrapped("Click an object to select it (press F2 to free the cursor).");
+        ImGui::End();
+        return;
+    }
+    ImGui::Text("%s %u", mesh ? "Mesh" : "Sphere", manager.selection.index);
+
+    if (rasterization) {
+        ImGui::SeparatorText("Transform");
+        if (mesh) {
+            if (eulerOwner != mesh) {
+                eulerOwner = mesh;
+                eulerDegrees = glm::degrees(glm::eulerAngles(mesh->transform.rotation));
+            }
+            ImGui::DragFloat3("Position", glm::value_ptr(mesh->transform.position), 0.05f);
+            if (ImGui::DragFloat3("Rotation", glm::value_ptr(eulerDegrees), 0.5f)) {
+                mesh->transform.rotation = glm::quat(glm::radians(eulerDegrees));
+            }
+            ImGui::DragFloat3("Scale", glm::value_ptr(mesh->transform.scale), 0.01f, 0.001f, 1000.f);
+        }
+        else {
+            ImGui::DragFloat3("Position", glm::value_ptr(sphere->pos), 0.05f);
+            ImGui::DragFloat("Radius", &sphere->radius, 0.05f, 0.001f, 100000.f);
+        }
+    }
+    else {
+        ImGui::SeparatorText("Material");
+        materialEditor(context, mesh ? mesh->material : sphere->material);
+    }
+    ImGui::End();
+}
+
+void UI::addRemoveControls(Context& context) {
+    auto& manager = context.objectManager;
+    ImGui::SeparatorText("Add / remove");
+
+    // new objects appear in front of the camera
+    const glm::vec3 spawn = context.camera.position + glm::normalize(context.camera.center - context.camera.position) * 5.f;
+    const auto addMesh = [&](std::vector<Vertex>& vertices, std::vector<unsigned int>& indices) {
+        auto mesh = std::make_shared<Mesh>(vertices, indices);
+        mesh->transform.position = spawn;
+        manager.addMesh(mesh);
+        manager.selection = {Selection::Kind::Mesh, manager.meshesNumber() - 1};
+    };
+
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    if (ImGui::Button("Cube")) {
+        MeshHelpers::generateCube(vertices, indices);
+        addMesh(vertices, indices);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Plane")) {
+        MeshHelpers::generatePlane(vertices, indices, glm::vec2(1.f), true);
+        addMesh(vertices, indices);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Mesh sphere")) {
+        MeshHelpers::generateSphere(vertices, indices);
+        addMesh(vertices, indices);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Sphere")) {
+        manager.addSphere(std::make_shared<Sphere>(spawn, 1.f));
+        manager.selection = {Selection::Kind::Sphere, manager.spheresNumber() - 1};
+    }
+
+    ImGui::InputText("Model file", modelPath, sizeof(modelPath));
+    if (ImGui::Button("Load model")) {
+        try {
+            MeshHelpers::generateFromFile(modelPath, vertices, indices);
+            addMesh(vertices, indices);
+        }
+        catch (const std::exception& e) {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+
+    ImGui::SameLine();
+    const bool hasSelection = manager.selectedMesh() || manager.selectedSphere();
+    ImGui::BeginDisabled(!hasSelection);
+    if (ImGui::Button("Remove selected")) {
+        if (manager.selectedMesh()) manager.removeMesh(manager.selection.index);
+        else manager.removeSphere(manager.selection.index);
+    }
+    ImGui::EndDisabled();
+}
+
+void UI::materialEditor(Context& context, Material& material) {
+    struct Preset { const char* name; const std::array<float, N_BINS>* n; const std::array<float, N_BINS>* k; };
+    static const Preset presets[] = {
+        {"Diamond",     &N_DIAMOND,     &K_DIAMOND},
+        {"Sapphire",    &N_SAPPHIRE,    &K_SAPPHIRE},
+        {"Ruby",        &N_RUBY,        &K_RUBY},
+        {"Gold",        &N_GOLD,        &K_GOLD},
+        {"Aquamarine",  &N_AQUAMARINE,  &K_AQUAMARINE},
+        {"Copper",      &N_COPPER,      &K_COPPER},
+        {"Rutile",      &N_RUTILE,      &K_RUTILE},
+        {"Alexandrite", &N_ALEXANDRITE, &K_ALEXANDRITE},
+    };
+    static const char* types[] = {"Light", "Lambertian", "Metallic", "Glass"};
+    const auto mean = [](const std::array<float, 16>& values) {
+        return std::accumulate(values.begin(), values.end(), 0.f) / static_cast<float>(values.size());
+    };
+
+    bool changed = false;
+
+    int type = static_cast<int>(material.id);
+    if (ImGui::Combo("Type", &type, types, IM_ARRAYSIZE(types))) {
+        material.id = static_cast<MaterialType>(type);
+        changed = true;
+    }
+
+    float albedo = mean(material.albedo);
+    if (ImGui::SliderFloat("Albedo", &albedo, 0.f, 1.f)) {
+        material.albedo.fill(albedo);
+        changed = true;
+    }
+
+    if (material.id == MaterialType::Light) {
+        changed |= ImGui::SliderFloat("Intensity", &material.intensity, 0.f, 100.f);
+        changed |= ImGui::SliderFloat("Temperature (K)", &material.T, 1000.f, 12000.f);
+    }
+    else {
+        changed |= ImGui::SliderFloat("Fuzz", &material.metal_fuzz, 0.f, 1.f);
+    }
+
+    if (material.id == MaterialType::Metallic || material.id == MaterialType::Glass) {
+        if (ImGui::BeginCombo("Preset (n, k)", "Select...")) {
+            for (const auto& preset : presets) {
+                if (ImGui::Selectable(preset.name)) {
+                    material.n = *preset.n;
+                    material.k = *preset.k;
+                    changed = true;
+                }
+            }
+            ImGui::EndCombo();
+        }
+        // moving the mean while keeping the dispersion
+        float n = mean(material.n);
+        if (ImGui::SliderFloat("Mean n", &n, 0.1f, 4.f)) {
+            const float shift = n - mean(material.n);
+            for (auto& v : material.n) v = std::max(v + shift, 0.01f);
+            changed = true;
+        }
+        float k = mean(material.k);
+        if (ImGui::SliderFloat("Mean k", &k, 0.f, 5.f)) {
+            const float shift = k - mean(material.k);
+            for (auto& v : material.k) v = std::max(v + shift, 0.f);
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        context.objectManager.updateMaterials();
+        context.screen.resetTextures();
+    }
 }
 
 void UI::setupImGuiStyle()

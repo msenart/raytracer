@@ -32,6 +32,7 @@ Screen::Screen() {
     vao->unbind();
     sp2 = std::make_shared<Shader>(Shader::fromFiles("fbo_render.vert","fbo_render.frag"));
     cs = std::make_shared<Shader>(Shader::computeFile("meshtracing.comp"));
+    raster = std::make_shared<Shader>(Shader::fromFiles("raster.vert","raster.frag"));
 
     glGenTextures(1, &tex1);
     glBindTexture(GL_TEXTURE_2D, tex1);
@@ -55,7 +56,18 @@ Screen::Screen() {
     FBO::unbind();
 }
 
+void Screen::drawRaster(Context& context) {
+    glClearColor(0.12f, 0.12f, 0.14f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    context.objectManager.drawRaster(*raster, context.camera);
+}
+
 void Screen::draw() {
+    if (mode == RenderMode::Rasterization) {
+        drawRaster(*static_cast<Context*>(glfwGetWindowUserPointer(window)));
+        return;
+    }
+
     cs->bind();
     cs->set("frame",frame);
     cs->set("windowSize", glm::vec2(WINDOW_WIDTH, WINDOW_HEIGHT));

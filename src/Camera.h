@@ -11,6 +11,11 @@ public:
     [[nodiscard]] glm::mat4 view() const;
     [[nodiscard]] glm::mat4 projection() const;
 
+    /// @brief World space direction of the ray going through a point of the screen.
+    /// @param ndcX x in normalized device coordinates, [-1, 1] from left to right.
+    /// @param ndcY y in normalized device coordinates, [-1, 1] from bottom to top.
+    [[nodiscard]] glm::vec3 screenRay(float ndcX, float ndcY) const;
+
     void mouseCallback(GLFWwindow* window, double xpos, double ypos);
     void processKeyboard(GLFWwindow* window, float deltaTime);
     void setShaderValues(const std::shared_ptr<Shader>& sp) const;

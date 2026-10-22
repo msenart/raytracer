@@ -4,6 +4,9 @@
 
 #include "ObjectManager.h"
 #include "Mesh.h"
+#include "Camera.h"
+#include "Shader.h"
+#include "MeshHelpers.h"
 
 ObjectManager::ObjectManager(std::vector<std::shared_ptr<Mesh>> meshes) : meshes(std::move(meshes)) {
 }
@@ -20,6 +23,31 @@ void ObjectManager::addSphere(std::shared_ptr<Sphere> sphere) {
 
 void ObjectManager::removeMesh(const unsigned int index) {
     meshes.erase(meshes.begin() + index);
+    if (index < mesh_raster.size()) {
+        destroyRasterBuffers(mesh_raster[index]);
+        mesh_raster.erase(mesh_raster.begin() + index);
+    }
+    if (selection.kind == Selection::Kind::Mesh) {
+        if (selection.index == index) selection = {};
+        else if (selection.index > index) selection.index--;
+    }
+}
+
+void ObjectManager::removeSphere(const unsigned int index) {
+    spheres.erase(spheres.begin() + index);
+    if (selection.kind == Selection::Kind::Sphere) {
+        if (selection.index == index) selection = {};
+        else if (selection.index > index) selection.index--;
+    }
+}
+
+namespace {
+    /// (re)uploads data into an SSBO, creating the buffer only the first time so rebuilding doesn't leak.
+    void uploadSSBO(unsigned int& buffer, unsigned int binding, size_t size, const void* data) {
+        if (buffer == 0) glCreateBuffers(1, &buffer);
+        glNamedBufferData(buffer, size, data, GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, buffer);
+    }
 }
 
 void ObjectManager::buildSSBOs() {
@@ -32,8 +60,6 @@ void ObjectManager::buildSSBOs() {
 
         IndexAndMeshID(unsigned int index, unsigned int material_id, unsigned int transform_index) : index(index), material_id(material_id), transform_index(transform_index) {}
     };
-
-    primitives_number = 0;
 
     struct GPUVertex {
         glm::vec3 position;
@@ -66,16 +92,10 @@ void ObjectManager::buildSSBOs() {
         _materials.push_back(meshes[i]->material);
         offset+=meshes[i]->vertices.size();
     }
-    primitives_number+=_indices.size()/3;
 
     // modern way to use SSBO (just like VBO, VAO, etc...)
-    glCreateBuffers(1, &vertices_ssbo);
-    glNamedBufferData(vertices_ssbo, _vertices.size() * sizeof(GPUVertex), _vertices.data(), GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertices_ssbo);
-
-    glCreateBuffers(1, &indices_ssbo);
-    glNamedBufferData(indices_ssbo, _indices.size() * sizeof(IndexAndMeshID), _indices.data(), GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indices_ssbo);
+    uploadSSBO(vertices_ssbo, 0, _vertices.size() * sizeof(GPUVertex), _vertices.data());
+    uploadSSBO(indices_ssbo, 1, _indices.size() * sizeof(IndexAndMeshID), _indices.data());
 
     // taking care of sphere equations
     struct GPUSphere {
@@ -93,21 +113,10 @@ void ObjectManager::buildSSBOs() {
         _spheres.emplace_back(_transforms.size(), spheres[i]->radius, material_id);
         _transforms.emplace_back(glm::translate(glm::mat4(1), spheres[i]->pos));
     }
-    primitives_number+=_spheres.size();
 
-    glCreateBuffers(1, &spheres_ssbo);
-    glNamedBufferData(spheres_ssbo, _spheres.size() * sizeof(GPUSphere), _spheres.data(), GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, spheres_ssbo);
-
-    // Setting the materials SSBO
-    glCreateBuffers(1, &material_ssbo);
-    glNamedBufferData(material_ssbo, _materials.size() * sizeof(Material), _materials.data(), GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, material_ssbo);
-
-    // Setting the transform SSBO
-    glCreateBuffers(1, &transform_ssbo);
-    glNamedBufferData(transform_ssbo, _transforms.size() * sizeof(glm::mat4), _transforms.data(), GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, transform_ssbo);
+    uploadSSBO(spheres_ssbo, 2, _spheres.size() * sizeof(GPUSphere), _spheres.data());
+    uploadSSBO(material_ssbo, 3, _materials.size() * sizeof(Material), _materials.data());
+    uploadSSBO(transform_ssbo, 5, _transforms.size() * sizeof(glm::mat4), _transforms.data());
 }
 
 void ObjectManager::buildBVH() {
@@ -219,11 +228,188 @@ void ObjectManager::buildBVH() {
         gpu_bvh_tree[i] = GPUNode(bvh_tree[i]);
     }
 
-    glCreateBuffers(1, &bvh_ssbo);
-    glNamedBufferData(bvh_ssbo, gpu_bvh_tree.size() * sizeof(GPUNode), gpu_bvh_tree.data(), GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, bvh_ssbo);
+    uploadSSBO(bvh_ssbo, 4, gpu_bvh_tree.size() * sizeof(GPUNode), gpu_bvh_tree.data());
+}
+
+void ObjectManager::rebuildAccelerationStructure() {
+    buildBVH(); // it is weird that this function must be before buildSSBOs...
+    buildSSBOs();
+}
+
+std::vector<Material> ObjectManager::collectMaterials() const {
+    // same order as in buildSSBOs: meshes first, then spheres.
+    std::vector<Material> materials;
+    materials.reserve(meshes.size() + spheres.size());
+    for (const auto& mesh : meshes) materials.push_back(mesh->material);
+    for (const auto& sphere : spheres) materials.push_back(sphere->material);
+    return materials;
+}
+
+void ObjectManager::updateMaterials() {
+    if (material_ssbo == 0) return; // the acceleration structure was never built, nothing to update
+    const auto materials = collectMaterials();
+    glNamedBufferSubData(material_ssbo, 0, materials.size() * sizeof(Material), materials.data());
 }
 
 unsigned int ObjectManager::primitivesNumber() const {
-    return primitives_number;
+    unsigned int total = spheres.size();
+    for (const auto& mesh : meshes) total += mesh->indices.size() / 3;
+    return total;
+}
+
+Mesh* ObjectManager::selectedMesh() const {
+    if (selection.kind != Selection::Kind::Mesh || selection.index >= meshes.size()) return nullptr;
+    return meshes[selection.index].get();
+}
+
+Sphere* ObjectManager::selectedSphere() const {
+    if (selection.kind != Selection::Kind::Sphere || selection.index >= spheres.size()) return nullptr;
+    return spheres[selection.index].get();
+}
+
+bool ObjectManager::pick(const glm::vec3& origin, const glm::vec3& direction) {
+    float best = std::numeric_limits<float>::max();
+    Selection hit;
+
+    for (unsigned int i = 0; i < meshes.size(); i++) {
+        const auto& mesh = meshes[i];
+        // working in the local space of the mesh. The direction isn't renormalized, so t is the same in both spaces.
+        const glm::mat4 inverse = glm::inverse(mesh->transform.matrix());
+        const glm::vec3 o = glm::vec3(inverse * glm::vec4(origin, 1.f));
+        const glm::vec3 d = glm::vec3(inverse * glm::vec4(direction, 0.f));
+        for (unsigned int t = 0; t + 2 < mesh->indices.size(); t += 3) {
+            // Moller-Trumbore
+            const glm::vec3& a = mesh->vertices[mesh->indices[t]].position;
+            const glm::vec3 e1 = mesh->vertices[mesh->indices[t + 1]].position - a;
+            const glm::vec3 e2 = mesh->vertices[mesh->indices[t + 2]].position - a;
+            const glm::vec3 p = glm::cross(d, e2);
+            const float det = glm::dot(e1, p);
+            if (glm::abs(det) < 1e-12f) continue;
+            const glm::vec3 s = o - a;
+            const float u = glm::dot(s, p) / det;
+            if (u < 0.f || u > 1.f) continue;
+            const glm::vec3 q = glm::cross(s, e1);
+            const float v = glm::dot(d, q) / det;
+            if (v < 0.f || u + v > 1.f) continue;
+            const float dist = glm::dot(e2, q) / det;
+            if (dist > 0.f && dist < best) {
+                best = dist;
+                hit = {Selection::Kind::Mesh, i};
+            }
+        }
+    }
+
+    for (unsigned int i = 0; i < spheres.size(); i++) {
+        const glm::vec3 oc = origin - spheres[i]->pos;
+        const float b = glm::dot(oc, direction);
+        const float c = glm::dot(oc, oc) - spheres[i]->radius * spheres[i]->radius;
+        const float discriminant = b * b - c;
+        if (discriminant < 0.f) continue;
+        const float root = glm::sqrt(discriminant);
+        float dist = -b - root;
+        if (dist < 0.f) dist = -b + root;
+        if (dist > 0.f && dist < best) {
+            best = dist;
+            hit = {Selection::Kind::Sphere, i};
+        }
+    }
+
+    selection = hit;
+    return hit.kind != Selection::Kind::None;
+}
+
+ObjectManager::RasterBuffers ObjectManager::createRasterBuffers(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices) {
+    RasterBuffers b;
+    b.count = static_cast<int>(indices.size());
+    glCreateVertexArrays(1, &b.vao);
+    glCreateBuffers(1, &b.vbo);
+    glCreateBuffers(1, &b.ebo);
+    glNamedBufferData(b.vbo, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+    glNamedBufferData(b.ebo, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+    glVertexArrayVertexBuffer(b.vao, 0, b.vbo, 0, sizeof(Vertex));
+    glVertexArrayElementBuffer(b.vao, b.ebo);
+
+    // locations match raster.vert: position, normal, tangent, uv
+    struct Attribute { GLint count; size_t offset; };
+    const Attribute attributes[] = {
+        {3, offsetof(Vertex, position)},
+        {3, offsetof(Vertex, normal)},
+        {4, offsetof(Vertex, tangent)},
+        {2, offsetof(Vertex, uv)},
+    };
+    for (unsigned int i = 0; i < 4; i++) {
+        glEnableVertexArrayAttrib(b.vao, i);
+        glVertexArrayAttribFormat(b.vao, i, attributes[i].count, GL_FLOAT, GL_FALSE, static_cast<GLuint>(attributes[i].offset));
+        glVertexArrayAttribBinding(b.vao, i, 0);
+    }
+    return b;
+}
+
+void ObjectManager::destroyRasterBuffers(RasterBuffers& buffers) {
+    glDeleteVertexArrays(1, &buffers.vao);
+    glDeleteBuffers(1, &buffers.vbo);
+    glDeleteBuffers(1, &buffers.ebo);
+    buffers = {};
+}
+
+void ObjectManager::ensureRasterBuffers() {
+    for (size_t i = mesh_raster.size(); i < meshes.size(); i++) {
+        mesh_raster.push_back(createRasterBuffers(meshes[i]->vertices, meshes[i]->indices));
+    }
+    if (sphere_raster.vao == 0) {
+        std::vector<Vertex> vertices;
+        std::vector<unsigned int> indices;
+        MeshHelpers::generateSphere(vertices, indices, glm::vec2(1.f), 32);
+        sphere_raster = createRasterBuffers(vertices, indices);
+    }
+}
+
+namespace {
+    /// Color used to represent a material in the rasterized view.
+    glm::vec3 displayColor(const Material& material) {
+        float albedo = 0.f;
+        for (const float a : material.albedo) albedo += a;
+        albedo /= static_cast<float>(material.albedo.size());
+        albedo = glm::clamp(albedo, 0.f, 1.f);
+        switch (material.id) {
+            case MaterialType::Light:      return glm::vec3(1.0f, 0.95f, 0.75f);
+            case MaterialType::Metallic:   return glm::vec3(0.75f, 0.75f, 0.8f) * albedo;
+            case MaterialType::Glass:      return glm::vec3(0.6f, 0.8f, 1.0f) * albedo;
+            default:                       return glm::vec3(0.8f) * albedo;
+        }
+    }
+}
+
+void ObjectManager::drawRaster(const Shader& shader, const Camera& camera) {
+    ensureRasterBuffers();
+
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    shader.bind();
+    shader.set("view", camera.view());
+    shader.set("projection", camera.projection());
+    shader.set("cameraPos", camera.position);
+
+    const auto draw = [&](const RasterBuffers& buffers, const glm::mat4& model, const Material& material, bool selected) {
+        shader.set("model", model);
+        shader.set("color", displayColor(material));
+        shader.set("emissive", material.id == MaterialType::Light);
+        shader.set("selected", selected);
+        glBindVertexArray(buffers.vao);
+        glDrawElements(GL_TRIANGLES, buffers.count, GL_UNSIGNED_INT, nullptr);
+    };
+
+    for (unsigned int i = 0; i < meshes.size(); i++) {
+        const bool selected = selection.kind == Selection::Kind::Mesh && selection.index == i;
+        draw(mesh_raster[i], meshes[i]->transform.matrix(), meshes[i]->material, selected);
+    }
+    for (unsigned int i = 0; i < spheres.size(); i++) {
+        const bool selected = selection.kind == Selection::Kind::Sphere && selection.index == i;
+        const glm::mat4 model = glm::translate(glm::mat4(1.f), spheres[i]->pos) * glm::scale(glm::mat4(1.f), glm::vec3(spheres[i]->radius));
+        draw(sphere_raster, model, spheres[i]->material, selected);
+    }
+
+    glBindVertexArray(0);
+    shader.unbind();
+    glDisable(GL_DEPTH_TEST);
 }
