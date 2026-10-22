@@ -24,37 +24,17 @@ void ProcessInput(GLFWwindow* window)
 void start() {
     // make the cursor disappear on focusing the window
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    Context ctx = {
-        .camera = {(float) WINDOW_WIDTH,(float) WINDOW_HEIGHT, 1.f,glm::radians(70.f),1,100},
-        .screen = {}
-    };
-    context = std::make_shared<Context>(ctx);
+    context = std::make_shared<Context>(Context{
+        .camera = {(float) WINDOW_WIDTH, (float) WINDOW_HEIGHT, 1.f, glm::radians(70.f), 1, 100},
+        .screen = {},
+        .objectManager = {}
+    });
     context->camera.can_move = true;
     // setting the window user pointer
     glfwSetWindowUserPointer(window, context.get());
 
-    // display hardware accelerator specs
-    std::cout << "Vendor: "   << glGetString(GL_VENDOR)   << "\n";
-    std::cout << "Renderer: " << glGetString(GL_RENDERER) << "\n";
-    std::cout << "Version: "  << glGetString(GL_VERSION)  << "\n";
-
-    // display compute shader limitations
-    int x,y,z;
-
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &x);
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &y);
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &z);
-
-    std::cout << "Max work group: (x, y, z) = (" << x << ", " << y << ", " << z << ")\n";
-
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &x);
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &y);
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &z);
-
-    std::cout << "Max work group size: (x, y, z) = (" << x << ", " << y << ", " << z << ")\n";
-
     // setting up the mesh scene
-    ObjectManager manager;
+    auto& manager = context->objectManager;
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::shared_ptr<Mesh> mesh;
@@ -76,8 +56,8 @@ void start() {
     mesh->transform.rotation = glm::vec3(-glm::radians(53.0f), 0.0f, 0.0f);
     mesh->material.id = MaterialType::Glass;
     mesh->material.albedo.fill(1.f);
-    mesh->material.n = N_GOLD;
-    mesh->material.k = K_GOLD;
+    mesh->material.n = N_SAPPHIRE;
+    mesh->material.k = K_SAPPHIRE;
     mesh->material.metal_fuzz = 0.3f;
     manager.addMesh(mesh);
 
@@ -87,8 +67,8 @@ void start() {
     mesh->transform.rotation = glm::vec3(-glm::radians(53.0f), 0.0f, 0.0f);
     mesh->material.id = MaterialType::Glass;
     mesh->material.albedo.fill(1.f);
-    mesh->material.n = N_GOLD;
-    mesh->material.k = K_GOLD;
+    mesh->material.n = N_DIAMOND;
+    mesh->material.k = K_DIAMOND;
     mesh->material.metal_fuzz = 0.3f;
     manager.addMesh(mesh);
 
@@ -151,7 +131,10 @@ int main()
         // setting the keyboard callbacks
         glfwSetKeyCallback(window, [](GLFWwindow* w, int key, int scancode, int action, int mods) {
             auto* ctx = static_cast<Context*>(glfwGetWindowUserPointer(w));
-            if (key == GLFW_KEY_F2 && action == GLFW_PRESS) {
+            if (key == GLFW_KEY_F3 && action == GLFW_PRESS) {
+                ctx->screen.showUI = !ctx->screen.showUI;
+            }
+            else if (key == GLFW_KEY_F2 && action == GLFW_PRESS) {
                 ctx->camera.can_move = !ctx->camera.can_move;
                 glfwSetInputMode(w, GLFW_CURSOR,
                     ctx->camera.can_move ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
@@ -171,14 +154,15 @@ int main()
         // This is the render loop
         while (!glfwWindowShouldClose(window))
         {
-            ProcessInput(window);
             // Druids are the best
             glClearColor(1.00f, 0.49f, 0.04f, 1.00f);
             glClear(GL_COLOR_BUFFER_BIT);
-            update();
-            context->screen.draw();
+            ProcessInput(window);
 
+            update();
             ui.update();
+
+            context->screen.draw();
             ui.render();
 
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

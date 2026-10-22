@@ -17,7 +17,7 @@
 - [X] Investigate why the scene is always so dark.
 - [X] Add the dependency of transmittance with depth and check whether there is loss of throughput when there is reflection inside the material.
 - [X] Add complex refraction index for metals if possible.
-- [ ] Implement Disney diffuse and GGX specular on top of it.
 - [X] Migrate the pathtracer to compute shader.
-- [ ] Implement acceleration structures on rays.
-- [ ] Implement acceleration structures on meshes.
+- [X] Implement acceleration structures on meshes.
+- [ ] Implement a mean to select meshes, and switch between rasterization and raytracing.
+- [ ] Implement Disney diffuse and GGX specular on top of it.

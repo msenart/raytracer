@@ -11,7 +11,6 @@ I first followed the tutorial [*Ray Tracing in One Weekend*](https://github.com/
 ## Next objectives
 
 - [ ] Add an UI to interact with the renderer.
-- [ ] Add a BVH to increase FPS.
 - [ ] Reduce noise using more efficient techniques to sample the wavelength.
 
 ## Technical implementation
@@ -25,7 +24,7 @@ I first followed the tutorial [*Ray Tracing in One Weekend*](https://github.com/
 
 ### Requirements
 
-- A GPU supporting **OpenGL 4.5** with up-to-date drivers (a high-end card is recommended, since there is no BVH yet).
+- A GPU supporting **OpenGL 4.5** with up-to-date drivers.
 - A C++20-compatible compiler (GCC 10+, Clang 11+, or MSVC 2019 16.11+/2022).
 - [CMake](https://cmake.org/) 3.20 or newer.
 - [Git](https://git-scm.com/).
@@ -62,5 +61,4 @@ Run the executable from the root of the repository so that shaders and assets ca
 ### Troubleshooting
 
 - **The window does not open / OpenGL error**: check that your GPU and drivers support OpenGL 4.5.
-- **Very low frame rate**: this is expected for now, as there is no acceleration structure yet. Reduce the window resolution or the number of samples per pixel.
 - **Configuration fails**: make sure you have an internet connection and that Git is installed, since the dependencies are fetched during the CMake configure step.

@@ -9,6 +9,8 @@ public:
         io = ImGui::GetIO();
     }
 
+    void setupImGuiStyle();
+
     void start();
 
     void update();
@@ -18,4 +20,8 @@ public:
     void stop();
 private:
     ImGuiIO io;
+
+    std::string vendor;
+    std::string version;
+    std::string renderer;
 };

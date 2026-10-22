@@ -43,6 +43,8 @@ struct Screen {
 
     RaytracerParams raytracer_params;
 
+    bool showUI = true;
+
     Screen();
 
     void draw();

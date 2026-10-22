@@ -23,8 +23,18 @@ float iorSellmeier(vec3 B, vec3 C, float lambdaUm) {
     return sqrt(1.0 + dot(B, l2 / (vec3(l2) - C)));
 }
 
-float sampleWLVisible(){
-    return LAMBDA_MIN + rand() * (LAMBDA_MAX - LAMBDA_MIN);
+//float sampleWLVisible(){
+//    return LAMBDA_MIN + rand() * (LAMBDA_MAX - LAMBDA_MIN);
+//}
+
+float sampleWLVisible() {
+    float nm = 538.0 - 138.888889 * atanh(0.85691062 - 1.82750197 * rand());
+    return nm * 0.001;
+}
+
+float lambdaPdfUm(float lUm) {
+    float c = cosh(0.0072 * (lUm * 1000.0 - 538.0));
+    return 1000.0 * 0.0039398042 / (c * c);
 }
 
 const float C2 = 1.438777e-2;          // hc/k  [m*K]

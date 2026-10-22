@@ -74,7 +74,7 @@ float Trace(Ray r) {
             cur_r = Ray(O + side*2*eps*N,reflection.R,cur_r.throughput*reflection.coef, cur_r.lambda,new_in_objtype_id, new_in_obj_id);
         }
         else { // if the ray has hit nothing
-            return BACKGROUND_INTENSITY*cur_r.throughput;
+            return BACKGROUND_INTENSITY*cur_r.throughput/lambdaPdfUm(cur_r.lambda);
         }
 
         // russian roulette
@@ -84,7 +84,7 @@ float Trace(Ray r) {
             cur_r.throughput/=0.5f;
         }
     }
-    return BACKGROUND_INTENSITY*cur_r.throughput; // or background color
+    return BACKGROUND_INTENSITY*cur_r.throughput/lambdaPdfUm(cur_r.lambda); // or background color
 }
 
 // No blurring
