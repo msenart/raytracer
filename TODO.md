@@ -20,7 +20,8 @@
 - [X] Migrate the pathtracer to compute shader.
 - [X] Implement acceleration structures on meshes.
 - [X] Implement a mean to select meshes, move them, and switch between rasterization and raytracing.
-- [ ] Implement Disney diffuse and GGX specular on top of it.
+- [X] Improve pathtracing whole performance (no object copy).
 - [ ] Solve the bug of having a mesh taking partially its previous refraction properties.
 - [ ] Improve BVH to load heavier meshes
-- [ ] Improve spectral convergence using NEE
+- [ ] Implement Disney diffuse and GGX specular on top of it.
+- [ ] Improve spectral convergence using NEE.

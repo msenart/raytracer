@@ -16,12 +16,12 @@ vec3 refraction(vec3 L, vec3 n, float cosI, float eta, float sin2T){
     return eta * L + (eta * cosI - cosT) * n;
 }
 
-Reflection sampleLambertReflection(vec3 L, vec3 N, float lambdaUm, Material nextMaterial){
+Reflection sampleLambertReflection(vec3 L, vec3 N, float lambdaUm, uint nextMaterial){
     return Reflection(normalize(normalize(N) + randomUnitVector()), albedoAt(nextMaterial, lambdaUm));
 }
 
-Reflection sampleMetalReflection(vec3 L, vec3 N, float lambdaUm, Material nextMaterial){
-    return Reflection(reflect(L, N) + randomUnitVector()*nextMaterial.metal_fuzz, albedoAt(nextMaterial, lambdaUm));
+Reflection sampleMetalReflection(vec3 L, vec3 N, float lambdaUm, uint nextMaterial){
+    return Reflection(reflect(L, N) + randomUnitVector()*materials[nextMaterial].metal_fuzz, albedoAt(nextMaterial, lambdaUm));
 }
 
 float fresnelDielectric(float cosI, float n1, float n2){
@@ -53,12 +53,12 @@ float fresnelDielectric(float cosI, cx n1, cx n2){
     return 0.5 * (norm2(rs) + norm2(rp));
 }
 
-Reflection sampleGlassReflection(vec3 L, vec3 N, float t, float lambdaUm, Material prev, Material next){
+Reflection sampleGlassReflection(vec3 L, vec3 N, float t, float lambdaUm, uint prev, uint next){
     // evaluate reflection and refraction
     vec3 n = dot(L, N) < 0.0 ? N : -N;
     float cosI = min(dot(-L, n), 1.0);
-    cx eta_prev = complexIndex(lambdaUm, prev.n, prev.k);
-    cx eta_next = complexIndex(lambdaUm, next.n, next.k);
+    cx eta_prev = complexIndex(lambdaUm, prev);
+    cx eta_next = complexIndex(lambdaUm, next);
     float F = fresnelDielectric(cosI, eta_prev, eta_next);
     if (F > rand())
     { return Reflection(reflect(L, n), 1.0); }
@@ -75,10 +75,10 @@ Reflection sampleGlassReflection(vec3 L, vec3 N, float t, float lambdaUm, Materi
     return Reflection(refraction(L, n, cosI, eta, sin2T), distance_attenuation);
 }
 
-Reflection sampleReflection(vec3 L, vec3 N, float t, float lambdaUm, Material previousMaterial, Material nextMaterial){
-    if (nextMaterial.id == 1) {return sampleLambertReflection(L,N, lambdaUm, nextMaterial);}
-    if (nextMaterial.id == 2) {return sampleMetalReflection(L,N, lambdaUm, nextMaterial);}
-    if (nextMaterial.id == 3) {return sampleGlassReflection(L,N, t, lambdaUm, previousMaterial ,nextMaterial);}
+Reflection sampleReflection(vec3 L, vec3 N, float t, float lambdaUm, uint previousMaterial, uint nextMaterial){
+    if (materials[nextMaterial].id == 1) {return sampleLambertReflection(L,N, lambdaUm, nextMaterial);}
+    if (materials[nextMaterial].id == 2) {return sampleMetalReflection(L,N, lambdaUm, nextMaterial);}
+    if (materials[nextMaterial].id == 3) {return sampleGlassReflection(L,N, t, lambdaUm, previousMaterial ,nextMaterial);}
     else {return Reflection(vec3(0), 0);}
 }
 

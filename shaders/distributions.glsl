@@ -8,13 +8,14 @@
 
 // all wavelengths are in µm.
 
-cx complexIndex(float lambdaUm, float[N_BINS] n, float[N_BINS] k) {
+// material is the index of the material in the materials buffer.
+cx complexIndex(float lambdaUm, uint material) {
     float t = clamp((lambdaUm - LAMBDA_MIN) / (LAMBDA_MAX - LAMBDA_MIN), 0.0, 1.0);
     float f = t * float(N_BINS - 1);
     int i0 = int(floor(f));
     int i1 = min(i0 + 1, N_BINS - 1);
-    float eval_n = mix(n[i0], n[i1], f - float(i0));
-    float eval_k = mix(k[i0], k[i1], f - float(i0));
+    float eval_n = mix(materials[material].n[i0], materials[material].n[i1], f - float(i0));
+    float eval_k = mix(materials[material].k[i0], materials[material].k[i1], f - float(i0));
     return cx(eval_n,eval_k);
 }
 
@@ -48,12 +49,12 @@ float planckPdfUm(float lambdaUm, float T) {
     return px * x / lambdaUm;
 }
 
-float albedoAt(Material m, float lambdaUm) {
+float albedoAt(uint material, float lambdaUm) {
     float t = clamp((lambdaUm - LAMBDA_MIN) / (LAMBDA_MAX - LAMBDA_MIN), 0.0, 1.0);
     float f = t * float(N_BINS - 1);
     int i0 = int(floor(f));
     int i1 = min(i0 + 1, N_BINS - 1);
-    return mix(m.albedo[i0], m.albedo[i1], f - float(i0));
+    return mix(materials[material].albedo[i0], materials[material].albedo[i1], f - float(i0));
 }
 
 float g(float l, float mu, float s1, float s2) {

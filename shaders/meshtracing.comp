@@ -21,43 +21,36 @@ uniform uint frame;
 uniform sampler2D readTex;
 layout(rgba32f, binding = 0) uniform writeonly image2D writeTex;
 
-//Material SSBO
-
-layout(std430, binding = 3) readonly buffer MaterialBuffer {
-    Material materials[];
-};
-
 vec2 uvScreen = vec2(gl_GlobalInvocationID.xy)/windowSize;
 
 // Core raytracing mechanic
 
 float Trace(Ray r) {
     Ray cur_r = r;
+    uint air = uint(materials.length()) - 1u; // the air is the last material
     for (uint depth = 0; depth < MAX_ITER; depth++){
         HitProperties hp = bvh_traversal(cur_r);
         if (hp.argmin_mesh < UINT_MAX){ // if the ray has hit a mesh
-            if (hp.argmin_mesh_type == 1 && materials[hp.argmin_mesh].id == 0){ // the mesh is emissive
-                return materials[hp.argmin_mesh].intensity*planckPdfUm(cur_r.lambda, materials[hp.argmin_mesh].T)*cur_r.throughput;
-            }
-            else if (hp.argmin_mesh_type == 2 && materials[spheres[hp.argmin_mesh].material_id].id == 0){
-                Material m = materials[spheres[hp.argmin_mesh].material_id];
-                return m.intensity * planckPdfUm(cur_r.lambda, m.T) * cur_r.throughput;
+            uint hit_material = hp.argmin_mesh_type == 1 ? hp.argmin_mesh : spheres[hp.argmin_mesh].material_id;
+            if (materials[hit_material].id == 0){ // the object is emissive
+                return materials[hit_material].intensity*planckPdfUm(cur_r.lambda, materials[hit_material].T)*cur_r.throughput;
             }
             vec3 N = hp.normal;
             vec3 O = cur_r.o + cur_r.d*hp.t;
             // we assume that there is NO intersection between the spheres, otherwise it is complicated.
             // when going OUT of the sphere, it is always Material -> Air
             // when going IN the sphere, it is always Air -> Material
-            Material previousMaterial;
-            Material nextMaterial;
+            // materials are handled by their index in the materials buffer.
             bool isGoingOut = hp.argmin_mesh == cur_r.in_obj_id && hp.argmin_mesh_type == cur_r.in_objtype_id;
+            uint previousMaterial = air;
+            uint nextMaterial = air;
             if (hp.argmin_mesh_type == 1){ // is triangle
-                previousMaterial = isGoingOut ? materials[cur_r.in_obj_id] : airMaterial;
-                nextMaterial = isGoingOut ? airMaterial : materials[hp.argmin_mesh];
+                previousMaterial = isGoingOut ? cur_r.in_obj_id : air;
+                nextMaterial = isGoingOut ? air : hp.argmin_mesh;
             }
             else if (hp.argmin_mesh_type == 2){ // is sphere
-                previousMaterial = isGoingOut ? materials[spheres[cur_r.in_obj_id].material_id] : airMaterial;
-                nextMaterial = isGoingOut ? airMaterial : materials[spheres[hp.argmin_mesh].material_id];
+                previousMaterial = isGoingOut ? spheres[cur_r.in_obj_id].material_id : air;
+                nextMaterial = isGoingOut ? air : spheres[hp.argmin_mesh].material_id;
             }
 
             Reflection reflection = sampleReflection(cur_r.d, N,hp.t ,cur_r.lambda, previousMaterial, nextMaterial);
@@ -90,7 +83,7 @@ float Trace(Ray r) {
 // No blurring
 
 Ray setWorldRay(vec3 d){
-    mat3 camToWorld = mat3(inverse(camera.view));
+    mat3 camToWorld = mat3(camera.inverseView);
     vec3 worldRayDir = normalize(camToWorld * d);
     return Ray(camera.position, worldRayDir, 1, sampleWLVisible(), UINT_MAX, UINT_MAX);
 }
@@ -105,7 +98,7 @@ Ray setWorldRayFocusBlur(vec3 d){
     vec3 newOrigin = lensOffset;
     vec3 newDir = normalize(focusPoint - lensOffset);
 
-    mat3 camToWorld = mat3(inverse(camera.view));
+    mat3 camToWorld = mat3(camera.inverseView);
     vec3 worldOrigin = camera.position + camToWorld * newOrigin;
     vec3 worldDirection = normalize(camToWorld * newDir);
     return Ray(worldOrigin, worldDirection,1, sampleWLVisible(), UINT_MAX, UINT_MAX);
@@ -118,7 +111,7 @@ vec4 basicRayTracing(){
     uv.x *= camera.aspectRatio;
     float z = 1.0 / tan(camera.fov * 0.5);
     vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
-    rayDir = normalize(mat3(inverse(camera.view)) * rayDir);
+    rayDir = normalize(mat3(camera.inverseView) * rayDir);
     Ray r = Ray(camera.position, rayDir, 1, sampleWLVisible(), UINT_MAX, UINT_MAX);
     float intensity = Trace(r);
     vec3 xyz = cieXYZ(r.lambda);
@@ -149,7 +142,7 @@ vec4 multiSamplingRayTracing(){
         uv.x *= camera.aspectRatio;
         float z = 1.0 / tan(camera.fov * 0.5);
         vec3 rayDir = normalize(vec3(uv.x, uv.y, -z));
-        rayDir = normalize(mat3(inverse(camera.view)) * rayDir);
+        rayDir = normalize(mat3(camera.inverseView) * rayDir);
         Ray r = Ray(camera.position, rayDir, 1, sampleWLVisible(), UINT_MAX, UINT_MAX);
         float intensity = Trace(r);
         vec3 xyz = cieXYZ(r.lambda);

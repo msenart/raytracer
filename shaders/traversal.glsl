@@ -44,10 +44,11 @@ HitProperties bruteforce_traversal(Ray r){
     float min_distance = FLOAT_MAX;
     HitProperties argmin_hp = HitProperties(false, UINT_MAX, UINT_MAX, 0, vec2(0), vec3(0));
     for (uint i = 0; i < indices.length(); i += 3) { // handling triangles (mesh_type = 1)
-        HitProperties hp = isRayIntersectingTriangle(r, indices[i].index, indices[i+1].index, indices[i+2].index, indices[i].transform_index, false, 1, indices[i].material_id); // materials[argmin_mesh].normalInterpolation
+        HitProperties hp = isRayIntersectingTriangle(r, indices[i].index, indices[i+1].index, indices[i+2].index, 1, indices[i].material_id); // materials[argmin_mesh].normalInterpolation
         if (hp.hasHit && hp.t < min_distance) {
             min_distance = hp.t;
             argmin_hp = hp;
+            argmin_hp.normal = triangleNormal(indices[i].index, indices[i+1].index, indices[i+2].index, hp.uv, false);
         }
     }
     for (uint i = 0; i < spheres.length(); i++) { // handling spheres equations (mesh_type = 2)
@@ -65,6 +66,7 @@ HitProperties bruteforce_traversal(Ray r){
 HitProperties bvh_traversal(Ray r){
     HitProperties best = HitProperties(false, UINT_MAX, UINT_MAX, 0, vec2(0), vec3(0));
     float closest = FLOAT_MAX;
+    uint best_triangle = 0; // index (in the indices buffer) of the first vertex of the closest triangle
 
     uint stack[64];
     uint sp = 0;
@@ -83,10 +85,10 @@ HitProperties bvh_traversal(Ray r){
                     indices[node.mesh_id].index,
                     indices[node.mesh_id + 1].index,
                     indices[node.mesh_id + 2].index,
-                    indices[node.mesh_id].transform_index,
-                    false, 1, indices[node.mesh_id].material_id);
+                    1, indices[node.mesh_id].material_id);
             if (hp.hasHit && hp.t < closest) {
                 closest = hp.t; best = hp;
+                best_triangle = node.mesh_id;
             }
         }
         else if (node.mesh_type == 2) {
@@ -130,6 +132,10 @@ HitProperties bvh_traversal(Ray r){
                 stack[sp++] = ids[a];
             }
         }
+    }
+    // the normal is only needed for the closest hit
+    if (best.hasHit && best.argmin_mesh_type == 1) {
+        best.normal = triangleNormal(indices[best_triangle].index, indices[best_triangle + 1].index, indices[best_triangle + 2].index, best.uv, false);
     }
     return best;
 }

@@ -15,8 +15,6 @@ struct Vertex{
 struct IndexAndMeshID{
     uint index;
     uint material_id;
-    uint transform_index;
-    float _pad0;
 };
 
 // Vertices SSBO

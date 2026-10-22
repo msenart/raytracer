@@ -70,5 +70,4 @@ private:
     unsigned int spheres_ssbo = 0;      // binding 2
     unsigned int material_ssbo = 0;     // binding 3
     unsigned int bvh_ssbo = 0;          // binding 4
-    unsigned int transform_ssbo = 0;
 };

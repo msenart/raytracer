@@ -4,21 +4,18 @@
 #include "hitproperties.glsl"
 #include "ray.glsl"
 #include "params.glsl"
-#include "transform.glsl"
 
 struct Sphere {
-    uint transform_index;
+    vec3 center;
     float radius;
-    uint  material_id;
+    uint material_id;
     float _pad0;
+    float _pad1;
+    float _pad2;
 };
 
 vec3 position(Sphere s){
-    return vec3(
-            transforms[s.transform_index][3][0],
-            transforms[s.transform_index][3][1],
-            transforms[s.transform_index][3][2]
-    );
+    return s.center;
 }
 
 // Sphere intersection algorithm

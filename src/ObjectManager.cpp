@@ -55,12 +55,11 @@ void ObjectManager::buildSSBOs() {
     struct IndexAndMeshID {
         unsigned int index;
         unsigned int material_id;
-        unsigned int transform_index;
-        float _pad0 = 0;
 
-        IndexAndMeshID(unsigned int index, unsigned int material_id, unsigned int transform_index) : index(index), material_id(material_id), transform_index(transform_index) {}
+        IndexAndMeshID(unsigned int index, unsigned int material_id) : index(index), material_id(material_id) {}
     };
 
+    // vertices are sent in world space, so the shader doesn't have to transform them for every intersection test.
     struct GPUVertex {
         glm::vec3 position;
         float _pad0 = 0;
@@ -71,25 +70,32 @@ void ObjectManager::buildSSBOs() {
         float _pad2 = 0;
         float _pad3 = 0;
 
-        GPUVertex(Vertex vertex) : position(vertex.position), normal(vertex.normal), tangent(vertex.tangent), uv(vertex.uv) {}
+        GPUVertex(const Vertex& vertex, const glm::mat4& model, const glm::mat3& normalMatrix) :
+            position(glm::vec3(model * glm::vec4(vertex.position, 1.f))),
+            normal(glm::normalize(normalMatrix * vertex.normal)),
+            tangent(glm::vec4(glm::mat3(model) * glm::vec3(vertex.tangent), vertex.tangent.w)),
+            uv(vertex.uv) {}
     };
 
     // concatenating vertices and indices into one big array.
     auto _vertices = std::vector<GPUVertex>();
     auto _indices = std::vector<IndexAndMeshID>();
-    auto _materials = std::vector<Material>();
-    auto _transforms = std::vector<glm::mat4>();
+    auto _materials = collectMaterials();
 
     unsigned int offset = 0;
     for (unsigned int i = 0; i < meshes.size(); i++) {
+        const glm::mat4 model = meshes[i]->transform.matrix();
+        const glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
         for (const auto& vertex: meshes[i]->vertices) {
-            _vertices.emplace_back(vertex);
+            _vertices.emplace_back(vertex, model, normalMatrix);
         }
-        for (const auto& index: meshes[i]->indices) {
-            _indices.emplace_back(offset + index, i, _transforms.size());
+        // a mirroring transform reverses the orientation of the triangles: swapping two indices restores it.
+        const bool mirrored = glm::determinant(glm::mat3(model)) < 0.f;
+        for (size_t t = 0; t + 2 < meshes[i]->indices.size(); t += 3) {
+            _indices.emplace_back(offset + meshes[i]->indices[t], i);
+            _indices.emplace_back(offset + meshes[i]->indices[t + (mirrored ? 2 : 1)], i);
+            _indices.emplace_back(offset + meshes[i]->indices[t + (mirrored ? 1 : 2)], i);
         }
-        _transforms.emplace_back(meshes[i]->transform.matrix());
-        _materials.push_back(meshes[i]->material);
         offset+=meshes[i]->vertices.size();
     }
 
@@ -99,24 +105,23 @@ void ObjectManager::buildSSBOs() {
 
     // taking care of sphere equations
     struct GPUSphere {
-        unsigned int transform_index;
+        glm::vec3 center;
         float radius;
         unsigned int material_id;
         float _pad0 = 0;
+        float _pad1 = 0;
+        float _pad2 = 0;
 
-        GPUSphere(unsigned int transform_index, float radius, unsigned int material_id) : transform_index(transform_index), radius(radius), material_id(material_id) {}
+        GPUSphere(const glm::vec3& center, float radius, unsigned int material_id) : center(center), radius(radius), material_id(material_id) {}
     };
     auto _spheres = std::vector<GPUSphere>();
     for (unsigned int i = 0; i < spheres.size(); i++) {
-        uint32_t material_id = static_cast<uint32_t>(_materials.size()); // index of the material about to be added
-        _materials.push_back(spheres[i]->material);
-        _spheres.emplace_back(_transforms.size(), spheres[i]->radius, material_id);
-        _transforms.emplace_back(glm::translate(glm::mat4(1), spheres[i]->pos));
+        // the materials of the spheres come right after the ones of the meshes (see collectMaterials)
+        _spheres.emplace_back(spheres[i]->pos, spheres[i]->radius, static_cast<unsigned int>(meshes.size() + i));
     }
 
     uploadSSBO(spheres_ssbo, 2, _spheres.size() * sizeof(GPUSphere), _spheres.data());
     uploadSSBO(material_ssbo, 3, _materials.size() * sizeof(Material), _materials.data());
-    uploadSSBO(transform_ssbo, 5, _transforms.size() * sizeof(glm::mat4), _transforms.data());
 }
 
 void ObjectManager::buildBVH() {
@@ -237,11 +242,14 @@ void ObjectManager::rebuildAccelerationStructure() {
 }
 
 std::vector<Material> ObjectManager::collectMaterials() const {
-    // same order as in buildSSBOs: meshes first, then spheres.
+    // meshes first, then spheres, and the air at the very end (the shader uses the last material as the air).
     std::vector<Material> materials;
-    materials.reserve(meshes.size() + spheres.size());
+    materials.reserve(meshes.size() + spheres.size() + 1);
     for (const auto& mesh : meshes) materials.push_back(mesh->material);
     for (const auto& sphere : spheres) materials.push_back(sphere->material);
+    Material air; // albedo 1, n = 1, k = 0
+    air.id = MaterialType::Glass;
+    materials.push_back(air);
     return materials;
 }
 

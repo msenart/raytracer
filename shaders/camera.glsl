@@ -4,6 +4,7 @@
 struct Camera {
     vec3 position;
     mat4 view;
+    mat4 inverseView;
     mat4 projection;
     vec3 up;
     float fov;

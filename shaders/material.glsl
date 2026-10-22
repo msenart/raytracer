@@ -13,32 +13,9 @@ struct Material{
     float[N_BINS] k;
 };
 
-float air_albedo[N_BINS]= {
-1,1,1,1,
-1,1,1,1,
-1,1,1,1,
-1,1,1,1};
-
-float air_n[N_BINS] = {
-1,1,1,1,
-1,1,1,1,
-1,1,1,1,
-1,1,1,1};
-
-float air_k[N_BINS] = {
-0,0,0,0,
-0,0,0,0,
-0,0,0,0,
-0,0,0,0 };
-
-const Material airMaterial = Material(
-        air_albedo,
-        3,
-        0.f,
-        293.f,
-        0.f,
-        air_n,
-        air_k
-);
+// All the materials of the scene. The last one is the air.
+layout(std430, binding = 3) readonly buffer MaterialBuffer {
+    Material materials[];
+};
 
 #endif

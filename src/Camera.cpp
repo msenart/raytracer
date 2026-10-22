@@ -98,6 +98,7 @@ void Camera::setShaderValues(const std::shared_ptr<Shader> &sp) const {
     sp->set("camera.nearPlane", nearPlane);
     sp->set("camera.farPlane", farPlane);
     sp->set("camera.view", view());
+    sp->set("camera.inverseView", glm::inverse(view()));
     sp->set("camera.projection", projection());
     sp->set("camera.apertureRadius", apertureRadius);
     sp->set("camera.focusDistance", focusDistance);
