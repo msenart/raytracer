@@ -11,6 +11,11 @@ glm::mat4 Camera::view() const { return glm::lookAt(position, center, up); }
 
 glm::mat4 Camera::projection() const { return glm::perspective(fov, aspectRatio, nearPlane, farPlane); }
 
+glm::vec3 Camera::screenRay(float ndcX, float ndcY) const {
+    const glm::vec4 p = glm::inverse(projection() * view()) * glm::vec4(ndcX, ndcY, 1.f, 1.f);
+    return glm::normalize(glm::vec3(p) / p.w - position);
+}
+
 void Camera::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
     if (justAfterQuittingUI) {
         lastX = xpos;

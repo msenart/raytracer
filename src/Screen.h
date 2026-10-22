@@ -28,6 +28,13 @@ struct RaytracerParams {
     }
 };
 
+enum class RenderMode {
+    Rasterization,
+    Raytracing,
+};
+
+struct Context;
+
 struct Screen {
     VAO* vao;
     VBO* vbo;
@@ -35,6 +42,9 @@ struct Screen {
     std::shared_ptr<Shader> sp;
     std::shared_ptr<Shader> sp2;
     std::shared_ptr<Shader> cs;
+    std::shared_ptr<Shader> raster;
+
+    RenderMode mode = RenderMode::Rasterization;
     unsigned int frame = 1;
 
     unsigned int tex1 = 0;
@@ -48,6 +58,9 @@ struct Screen {
     Screen();
 
     void draw();
+
+    /// @brief draws the scene with the rasterization pipeline.
+    void drawRaster(Context& context);
 
     /// @brief resets both textures values to the background values.
     void resetTextures();

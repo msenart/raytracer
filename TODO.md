@@ -19,5 +19,5 @@
 - [X] Add complex refraction index for metals if possible.
 - [X] Migrate the pathtracer to compute shader.
 - [X] Implement acceleration structures on meshes.
-- [ ] Implement a mean to select meshes, move them, and switch between rasterization and raytracing.
+- [X] Implement a mean to select meshes, move them, and switch between rasterization and raytracing.
 - [ ] Implement Disney diffuse and GGX specular on top of it.

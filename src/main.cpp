@@ -25,7 +25,7 @@ void start() {
     // make the cursor disappear on focusing the window
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     context = std::make_shared<Context>(Context{
-        .camera = {(float) WINDOW_WIDTH, (float) WINDOW_HEIGHT, 1.f, glm::radians(70.f), 1, 100},
+        .camera = {(float) WINDOW_WIDTH, (float) WINDOW_HEIGHT, 1.f, glm::radians(70.f), 0.001, 100},
         .screen = {},
         .objectManager = {}
     });
@@ -78,9 +78,7 @@ void start() {
     sphere->material.metal_fuzz = 0.3f;
     manager.addSphere(sphere);
 
-
-    manager.buildBVH(); // it is weird that this function must be before buildSSBOs...
-    manager.buildSSBOs();
+    // the BVH and the SSBOs are only built when switching to raytracing, so they reflect the scene at that moment.
 }
 
 void update(){
@@ -144,6 +142,16 @@ int main()
             else if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
                 ctx->screen.resetTextures();
             }
+            else if (key == GLFW_KEY_F4 && action == GLFW_PRESS) {
+                ctx->setRenderMode(ctx->screen.mode == RenderMode::Rasterization ? RenderMode::Raytracing : RenderMode::Rasterization);
+            }
+        });
+
+        // selecting objects by clicking on them (ImGui chains this callback when it is started)
+        glfwSetMouseButtonCallback(window, [](GLFWwindow* w, int button, int action, int mods) {
+            if (button != GLFW_MOUSE_BUTTON_LEFT || action != GLFW_PRESS) return;
+            if (ImGui::GetIO().WantCaptureMouse) return;
+            static_cast<Context*>(glfwGetWindowUserPointer(w))->pickAtCursor(w);
         });
 
         // setting up ImGui
