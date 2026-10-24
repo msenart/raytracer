@@ -7,6 +7,7 @@
 #include "Camera.h"
 #include "Shader.h"
 #include "MeshHelpers.h"
+#include "BVHNode.h"
 
 ObjectManager::ObjectManager(std::vector<std::shared_ptr<Mesh>> meshes) : meshes(std::move(meshes)) {
 }
@@ -125,85 +126,105 @@ void ObjectManager::buildSSBOs() {
 }
 
 void ObjectManager::buildBVH() {
-    struct Node {
-        AABB aabb;
-        unsigned int id_node_next_left;
-        unsigned int id_node_next_right;
-        unsigned int mesh_id;
-        unsigned int mesh_type;
-        Node() = default;
+    // unsigned int number_total_indices = 0;
+    // for (const auto& mesh : meshes) {
+    //     number_total_indices += mesh->indices.size();
+    // }
+    //
+    // std::vector<Node> all_leaves;
+    // all_leaves.reserve(number_total_indices/3 + spheres.size());
+    //
+    // const glm::vec3 pad(1e-5f);
+    // unsigned int index_offset = 0;
+    // for (const auto& mesh : meshes) {
+    //     const glm::mat4 M = mesh->transform.matrix();
+    //     for (unsigned int t = 0; t < mesh->indices.size()/3; t++) {
+    //         glm::vec3 mn(std::numeric_limits<float>::max());
+    //         glm::vec3 mx(std::numeric_limits<float>::lowest());
+    //         for (int k = 0; k < 3; k++) {
+    //             const glm::vec3 p = glm::vec3(M * glm::vec4(mesh->vertices[mesh->indices[3*t+k]].position, 1.f));
+    //             mn = glm::min(mn, p);
+    //             mx = glm::max(mx, p);
+    //         }
+    //         all_leaves.emplace_back(AABB{mn - pad, mx + pad}, UINT_MAX, UINT_MAX, index_offset + 3*t, 1);
+    //     }
+    //     index_offset += mesh->indices.size();
+    // }
+    //
+    // for (unsigned int i = 0; i < spheres.size(); i++) {
+    //     const AABB local = spheres[i]->aabb();
+    //     all_leaves.emplace_back(AABB{spheres[i]->pos + local.min, spheres[i]->pos + local.max},
+    //                             UINT_MAX, UINT_MAX, i, 2);
+    // }
+    //
+    // if (all_leaves.empty()) return;
+    //
+    // std::vector<Node> bvh_tree = all_leaves;
+    // std::vector<unsigned int> active(bvh_tree.size());
+    // std::iota(active.begin(), active.end(), 0u);
+    //
+    // while (active.size() > 1) {
+    //     std::vector<bool> used(bvh_tree.size(), false);
+    //     std::vector<unsigned int> next_active;
+    //
+    //     for (unsigned int i : active) {
+    //         if (used[i]) continue;
+    //         float best = std::numeric_limits<float>::infinity();
+    //         unsigned int best_j = UINT_MAX;
+    //         for (unsigned int j : active) {
+    //             if (i == j || used[j]) continue;
+    //             float d = AABB::merge(bvh_tree[i].aabb, bvh_tree[j].aabb).surfaceArea();
+    //             if (d < best) { best = d; best_j = j; }
+    //         }
+    //         if (best_j == UINT_MAX) continue;
+    //         used[i] = true;
+    //         used[best_j] = true;
+    //         unsigned int idx = bvh_tree.size();
+    //         bvh_tree.emplace_back(AABB::merge(bvh_tree[i].aabb, bvh_tree[best_j].aabb),
+    //                               i, best_j, UINT_MAX, 0);
+    //         next_active.push_back(idx);
+    //     }
+    //     for (unsigned int i : active)
+    //         if (!used[i]) next_active.push_back(i);
+    //
+    //     active = std::move(next_active);
+    // }
 
-        Node(const AABB & aabb, unsigned int id_node_next_left, unsigned int id_node_next_right, unsigned int mesh_id, unsigned int mesh_type) :
-            aabb(aabb),
-            id_node_next_left(id_node_next_left),
-            id_node_next_right(id_node_next_right),
-            mesh_id(mesh_id),
-            mesh_type(mesh_type) {}
-    };
-
-    unsigned int number_total_indices = 0;
+    std::vector<BVH> bvhs;
+    unsigned int offset = 0;
     for (const auto& mesh : meshes) {
-        number_total_indices += mesh->indices.size();
+        bvhs.push_back(mesh->bvh(offset));
+        offset+=mesh->indices.size();
+    }
+    offset = 0;
+    for (const auto& sphere : spheres) {
+        bvhs.push_back(sphere->bvh(offset));
+        offset+=1;
     }
 
-    std::vector<Node> all_leaves;
-    all_leaves.reserve(number_total_indices/3 + spheres.size());
-
-    const glm::vec3 pad(1e-5f);
-    unsigned int index_offset = 0;
-    for (const auto& mesh : meshes) {
-        const glm::mat4 M = mesh->transform.matrix();
-        for (unsigned int t = 0; t < mesh->indices.size()/3; t++) {
-            glm::vec3 mn(std::numeric_limits<float>::max());
-            glm::vec3 mx(std::numeric_limits<float>::lowest());
-            for (int k = 0; k < 3; k++) {
-                const glm::vec3 p = glm::vec3(M * glm::vec4(mesh->vertices[mesh->indices[3*t+k]].position, 1.f));
-                mn = glm::min(mn, p);
-                mx = glm::max(mx, p);
-            }
-            all_leaves.emplace_back(AABB{mn - pad, mx + pad}, UINT_MAX, UINT_MAX, index_offset + 3*t, 1);
-        }
-        index_offset += mesh->indices.size();
-    }
-
-    for (unsigned int i = 0; i < spheres.size(); i++) {
-        const AABB local = spheres[i]->aabb();
-        all_leaves.emplace_back(AABB{spheres[i]->pos + local.min, spheres[i]->pos + local.max},
-                                UINT_MAX, UINT_MAX, i, 2);
-    }
-
-    if (all_leaves.empty()) return;
-
-    std::vector<Node> bvh_tree = all_leaves;
-    std::vector<unsigned int> active(bvh_tree.size());
-    std::iota(active.begin(), active.end(), 0u);
-
-    while (active.size() > 1) {
-        std::vector<bool> used(bvh_tree.size(), false);
-        std::vector<unsigned int> next_active;
-
-        for (unsigned int i : active) {
+    while (bvhs.size() > 1) {
+        std::vector<BVH> next_bvhs;
+        next_bvhs.reserve(bvhs.size() / 2 + 1);
+        std::vector<char> used(bvhs.size(), 0);
+        for (size_t i = 0; i < bvhs.size(); i++) {
             if (used[i]) continue;
             float best = std::numeric_limits<float>::infinity();
             unsigned int best_j = UINT_MAX;
-            for (unsigned int j : active) {
-                if (i == j || used[j]) continue;
-                float d = AABB::merge(bvh_tree[i].aabb, bvh_tree[j].aabb).surfaceArea();
+            for (size_t j = i + 1; j < bvhs.size(); j++) {
+                if (used[j]) continue;
+                float d = AABB::merge(bvhs[i].root().aabb, bvhs[j].root().aabb).surfaceArea();
                 if (d < best) { best = d; best_j = j; }
             }
-            if (best_j == UINT_MAX) continue;
-            used[i] = true;
-            used[best_j] = true;
-            unsigned int idx = bvh_tree.size();
-            bvh_tree.emplace_back(AABB::merge(bvh_tree[i].aabb, bvh_tree[best_j].aabb),
-                                  i, best_j, UINT_MAX, 0);
-            next_active.push_back(idx);
+            if (best_j == UINT_MAX) {
+                next_bvhs.push_back(std::move(bvhs[i]));
+                continue;
+            }
+            used[i] = used[best_j] = 1;
+            next_bvhs.push_back(BVH::merge(bvhs[i], bvhs[best_j]));
         }
-        for (unsigned int i : active)
-            if (!used[i]) next_active.push_back(i);
-
-        active = std::move(next_active);
+        bvhs = std::move(next_bvhs);
     }
+    BVH out_bvh = std::move(bvhs[0]);
 
     struct GPUNode {
         glm::vec3 min{0};
@@ -219,7 +240,7 @@ void ObjectManager::buildBVH() {
 
         GPUNode() = default;
 
-        explicit GPUNode(const Node &n):
+        explicit GPUNode(const BVHNode &n):
             min(n.aabb.min),
             max(n.aabb.max),
             id_node_next_left(n.id_node_next_left),
@@ -228,9 +249,9 @@ void ObjectManager::buildBVH() {
             mesh_type(n.mesh_type) {};
     };
 
-    std::vector<GPUNode> gpu_bvh_tree(bvh_tree.size());
-    for (unsigned int i = 0; i < bvh_tree.size(); i++) {
-        gpu_bvh_tree[i] = GPUNode(bvh_tree[i]);
+    std::vector<GPUNode> gpu_bvh_tree(out_bvh.nodes.size());
+    for (unsigned int i = 0; i < out_bvh.nodes.size(); i++) {
+        gpu_bvh_tree[i] = GPUNode(out_bvh.nodes[i]);
     }
 
     uploadSSBO(bvh_ssbo, 4, gpu_bvh_tree.size() * sizeof(GPUNode), gpu_bvh_tree.data());
@@ -392,7 +413,7 @@ void ObjectManager::drawRaster(const Shader& shader, const Camera& camera) {
     ensureRasterBuffers();
 
     glEnable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     shader.bind();
     shader.set("view", camera.view());
     shader.set("projection", camera.projection());

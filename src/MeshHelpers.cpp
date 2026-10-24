@@ -198,7 +198,6 @@ void MeshHelpers::generateFromFile(const std::string& path, std::vector<Vertex>&
     Assimp::Importer importer;
 
     const aiScene* scene = importer.ReadFile(path,
-        aiProcess_Triangulate |
         aiProcess_JoinIdenticalVertices |
         aiProcess_CalcTangentSpace |
         aiProcess_GenSmoothNormals |

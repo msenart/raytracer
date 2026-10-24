@@ -47,7 +47,8 @@ file(GLOB_RECURSE sources CONFIGURE_DEPENDS
 
 add_executable(raytracer ${sources}
         src/UI.cpp
-        src/UI.h)
+        src/UI.h
+        src/BVHNode.h)
 
 target_precompile_headers(raytracer PRIVATE src/OpenGLIncludes.h)
 

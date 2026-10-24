@@ -6,7 +6,7 @@ struct RaytracerParams {
     unsigned int max_iter             = 50;
     float        max_distance         = 2000.f;
     float        background_intensity = 1.f;
-    float        eps                  = 10E-5f;
+    float        eps                  = 10E-7f;
     unsigned int multisampling_size   = 4;
     unsigned int random_sampling_size = 1;
     float        lambda_min           = .4f;

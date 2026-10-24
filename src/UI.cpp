@@ -53,7 +53,7 @@ void UI::update() {
     changed |= ImGui::SliderScalar("Max iterations", ImGuiDataType_U32, &p.max_iter, &one, &max_iter_cap);
     changed |= ImGui::SliderFloat("Max distance", &p.max_distance, 1.f, 10000.f, "%.0f", ImGuiSliderFlags_Logarithmic);
     changed |= ImGui::SliderFloat("Background", &p.background_intensity, 0.f, 5.f);
-    changed |= ImGui::SliderFloat("Epsilon", &p.eps, 1e-7f, 1e-1f, "%.7f", ImGuiSliderFlags_Logarithmic);
+    changed |= ImGui::SliderFloat("Epsilon", &p.eps, 1e-8f, 1e-1f, "%.7f", ImGuiSliderFlags_Logarithmic);
     ImGui::SeparatorText("Sampling");
     changed |= ImGui::SliderScalar("Random sampling ray/frame", ImGuiDataType_U32, &p.random_sampling_size, &one, &max_rs);
     ImGui::SeparatorText("Light");

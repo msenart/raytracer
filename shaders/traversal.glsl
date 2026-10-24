@@ -135,7 +135,7 @@ HitProperties bvh_traversal(Ray r){
     }
     // the normal is only needed for the closest hit
     if (best.hasHit && best.argmin_mesh_type == 1) {
-        best.normal = triangleNormal(indices[best_triangle].index, indices[best_triangle + 1].index, indices[best_triangle + 2].index, best.uv, false);
+        best.normal = triangleNormal(indices[best_triangle].index, indices[best_triangle + 1].index, indices[best_triangle + 2].index, best.uv, true);
     }
     return best;
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "OpenGLIncludes.h"
-
 #include "Mesh.h"
 
 class Shader;

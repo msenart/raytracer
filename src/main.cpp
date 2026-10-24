@@ -50,27 +50,29 @@ void start() {
 
     std::shared_ptr<Sphere> sphere;
 
-    MeshHelpers::generateFromFile("../assets/diamond.fbx", vertices, indices);
-    mesh = std::make_shared<Mesh>(vertices, indices);
-    mesh->transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
-    mesh->transform.rotation = glm::vec3(-glm::radians(53.0f), 0.0f, 0.0f);
-    mesh->material.id = MaterialType::Glass;
-    mesh->material.albedo.fill(1.f);
-    mesh->material.n = N_ALEXANDRITE;
-    mesh->material.k = K_ALEXANDRITE;
-    mesh->material.metal_fuzz = 0.3f;
-    manager.addMesh(mesh);
+    // MeshHelpers::generateFromFile("../assets/diamond.stl", vertices, indices);
+    // mesh = std::make_shared<Mesh>(vertices, indices);
+    // mesh->transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
+    // mesh->transform.rotation = glm::vec3(-glm::radians(53.0f), 0.0f, 0.0f);
+    // mesh->material.id = MaterialType::Glass;
+    // mesh->material.albedo.fill(1.f);
+    // mesh->material.n = N_ALEXANDRITE;
+    // mesh->material.k = K_ALEXANDRITE;
+    // mesh->material.metal_fuzz = 0.3f;
+    // manager.addMesh(mesh);
 
-    MeshHelpers::generateFromFile("../assets/diamond.fbx", vertices, indices);
+    MeshHelpers::generateFromFile("../assets/AdaWong.stl", vertices, indices);
     mesh = std::make_shared<Mesh>(vertices, indices);
     mesh->transform.position = glm::vec3(3.0f, -0.35f, 0.0f);
-    mesh->transform.rotation = glm::vec3(-glm::radians(53.0f), 0.0f, 0.0f);
+    mesh->transform.rotation = glm::vec3(-glm::radians(0.0f), 0.0f, 0.0f);
+    mesh->transform.scale = glm::vec3(3.f);
     mesh->material.id = MaterialType::Glass;
     mesh->material.albedo.fill(1.f);
     mesh->material.n = N_DIAMOND;
     mesh->material.k = K_DIAMOND;
     mesh->material.metal_fuzz = 0.3f;
     manager.addMesh(mesh);
+
     //
     sphere = std::make_shared<Sphere>(glm::vec3(0.0f, -1001.0f, -2.5f), 1000.f);
     sphere->material.id = MaterialType::Lambertian;
@@ -160,7 +162,6 @@ int main()
 
         // modifying variables before runtimes
         start();
-
         // This is the render loop
         while (!glfwWindowShouldClose(window))
         {

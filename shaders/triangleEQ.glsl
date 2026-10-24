@@ -3,8 +3,6 @@
 
 #include "hitproperties.glsl"
 #include "vertices.glsl"
-// Möller-Trumbore algorithm for triangle intersection
-// The vertices are stored in world space (they are transformed when the SSBOs are built).
 
 // Only computed for the closest hit of a ray, once the traversal is over.
 vec3 triangleNormal(uint i0, uint i1, uint i2, vec2 uv, bool interpolation) {

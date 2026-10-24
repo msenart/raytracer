@@ -4,6 +4,8 @@
 #include "MeshHelpers.h"
 #include "Transform.h"
 #include <array>
+
+#include "BVHNode.h"
 #include "Parameters.h"
 
 enum struct MaterialType : unsigned int {
@@ -28,28 +30,30 @@ struct Material {
         k.fill(0.f);
     }
 };
-struct AABB {
-    glm::vec3 min;
-    glm::vec3 max;
 
-    static float distance(const AABB& aabb1,const AABB& aabb2);
-
-    static AABB merge(const AABB& aabb1,const AABB& aabb2);
-
-    [[nodiscard]] float surfaceArea() const;
-};
 struct Mesh {
     Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices);
     Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices, Material material);
     Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices, Material material, Transform transform);
 
-    [[nodiscard]] std::vector<AABB> aabb() const;
+    /// @brief returns the list of all the primitives' aabb in the world space.
+    [[nodiscard]] std::vector<AABB> aabbs() const;
+
+    /// @brief returns the aabb of the whole mesh in the world space.
+    [[nodiscard]] AABB aabb() const;
+
+    [[nodiscard]] BVH bvh(unsigned int offset) const;
 
     Material material;
     Transform transform;
+    std::vector<BVHNode> bvh_nodes;
+    std::vector<unsigned int> bvh_tree;
 
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+
+private:
+    static BVH buildBVH(const std::vector<std::pair<unsigned int, BVHNode>> &leaves, unsigned int first, unsigned int last);
 };
 
 struct Sphere {
@@ -57,8 +61,11 @@ struct Sphere {
     float radius;
     Material material;
 
+    /// @brief returns the aabb of the sphere in the world space.
     [[nodiscard]] AABB aabb() const;
 
     Sphere(glm::vec3 pos, float radius, Material material);
     Sphere(glm::vec3 pos, float radius);
+
+    [[nodiscard]] BVH bvh(unsigned int offset) const;
 };
